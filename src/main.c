@@ -330,7 +330,7 @@ static int game_shader(app *a, int sys, const game_entry *g)
 {
 	char key[LIB_PATH + 48], name[SL_NAME];
 
-	if (!g || !g->file) return a->view[sys].shader;
+	if (!g || !g->file[0]) return a->view[sys].shader;
 	snprintf(key, sizeof key, "shader.%s.%s", a->sys.systems[sys].tag, g->file);
 	return db_get_str(db_dev(), key, name, sizeof name, NULL)
 	       ? sl_find(&a->shaders, name) : a->view[sys].shader;
@@ -340,7 +340,7 @@ static void game_shader_save(app *a, int sys, const game_entry *g, int i)
 {
 	char key[LIB_PATH + 48];
 
-	if (!g || !g->file) return;
+	if (!g || !g->file[0]) return;
 	snprintf(key, sizeof key, "shader.%s.%s", a->sys.systems[sys].tag, g->file);
 	db_set_str(db_dev(), key, a->shaders.e[i].name);
 }
@@ -5119,6 +5119,9 @@ typedef struct {
 	 * going anywhere, and the wait loop below it has to be told, or it goes
 	 * straight back to waiting on a game nobody is running. */
 	menu_result (*on_power)(app *a, void *ctx);
+	/* The row the cursor starts on: 0, the top, unless a list opens on the
+	 * entry already chosen (the in-game Shader list). */
+	int      start;
 } menu_style;
 
 /* SELECT: Muse, over whatever is on screen. Declared here, after menu_style,
@@ -5143,7 +5146,7 @@ static menu_exit menu_run_body(app *a, const menu_style *st,
 {
 	menu_row rows[MENU_RUN_ROWS];
 	const char *heading = NULL;
-	int sel = 0, n = 0, b;
+	int sel = st->start, n = 0, b;
 
 	while (a->running && !want_quit) {
 		n = build(ctx, rows, MENU_RUN_ROWS, &heading);
