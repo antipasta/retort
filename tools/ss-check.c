@@ -206,6 +206,7 @@ static void the_system_ids(void)
 	ck(ss_system_id("NES") == 3, "NES");
 	ck(ss_system_id("Genesis") == 1, "Genesis");
 	ck(ss_system_id("TurboGrafx-16") == 31, "TurboGrafx-16, CD games included");
+	ck(ss_system_id("PlayStation") == 57, "PlayStation");
 	ck(ss_system_id("Neo Geo") == 142, "Neo Geo");
 	ck(ss_system_id("Neo Geo Pocket Color") == 82, "Neo Geo Pocket Color");
 	ck(ss_system_id("Game Boy Advance") == 12, "Game Boy Advance");

@@ -577,6 +577,24 @@ static bool ext_allowed(const char *name, const char *exts)
 	return false;
 }
 
+static bool dir_has_rom(const char *dirpath, const char *exts)
+{
+	DIR *sub = opendir(dirpath);
+	struct dirent *se;
+	bool found = false;
+
+	if (!sub) return false;
+	while ((se = readdir(sub))) {
+		if (se->d_name[0] == '.') continue;
+		if (ext_allowed(se->d_name, exts)) {
+			found = true;
+			break;
+		}
+	}
+	closedir(sub);
+	return found;
+}
+
 /* The ROM stems in one folder. `.media/` and any dotfile are not games, and
  * neither is a stray text file - which is what the extension list in
  * systems.cfg is for. Without it this reports missing art for things that
@@ -607,6 +625,28 @@ static void read_roms(const char *dir, const char *exts)
 			snprintf(g_rext[g_nroms], sizeof g_rext[0], "%s", dot);
 			*dot = '\0';
 		}
+		g_nroms++;
+	}
+
+	/* Pass 2: a subfolder holding disc images is a game too. */
+	rewinddir(d);
+	while ((e = readdir(d)) && g_nroms < ENTRIES_MAX) {
+		char full[ARTPATH_MAX];
+		struct stat st;
+		bool shadowed = false;
+
+		if (e->d_name[0] == '.') continue;
+		if (snprintf(full, sizeof full, "%s/%s", dir, e->d_name)
+		    >= (int)sizeof full) continue;
+		if (stat(full, &st) != 0 || !S_ISDIR(st.st_mode)) continue;
+		if (!dir_has_rom(full, exts)) continue;
+		for (int k = 0; k < g_nroms; k++) {
+			if (!strcasecmp(g_roms[k], e->d_name)) { shadowed = true; break; }
+		}
+		if (shadowed) continue;
+		if (snprintf(g_roms[g_nroms], NAME_MAX_, "%s", e->d_name)
+		    >= NAME_MAX_) continue;
+		g_rext[g_nroms][0] = '\0';
 		g_nroms++;
 	}
 	closedir(d);

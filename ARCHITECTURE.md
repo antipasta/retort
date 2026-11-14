@@ -189,9 +189,12 @@ sys|PlayStation|PlayStation|pcsx_rearmed|PS|PS.png|6A96DE|chd,cue,m3u,pbp,iso,im
 - Fancy theme card: `res/cards/fancy/PS.png` (369x219 landscape card).
 - Sourced from the plorpOS distribution pipeline, formatted and optimized to TortOS dimension and color standards.
 
-#### C. Metadata & Art Scraping (`src/artscrape.c` & `src/ssfetch.c`)
+#### C. Metadata & Art Scraping (`src/artscrape.c`, `src/ssfetch.c`, `tools/scrape-art.py`)
 - **Libretro Art Scraping (`src/artscrape.c`)**: Added `{ "PlayStation", "Sony - PlayStation", NULL }` to map the folder to Libretro thumbnail repository names.
-- **ScreenScraper API (`src/ssfetch.c`)**: Added `{ "PlayStation", 57 }` matching ScreenScraper system ID 57.
+- **ScreenScraper API (`src/ssfetch.c` & `tools/ss-check.c`)**: Added `{ "PlayStation", 57 }` matching ScreenScraper system ID 57.
+- **Host-Side Scraper (`tools/scrape-art.py`)**: Added `"PlayStation": ["Sony - PlayStation"]` to the `LIBRETRO` dictionary, and fixed loop variable shadowing (`got` counter).
+- **Disc Subfolder Detection (`src/artscrape.c`)**: Enhanced `read_roms()` with Pass 2 subfolder scanning to discover games structured as directories (e.g. `Roms/PlayStation/<Game>/...`).
+- **Device Binary (`out/brick-neogeo-update/TortOS/tortos.elf`)**: Updated with the v1.9 executable containing built-in PlayStation and ScreenScraper table definitions.
 
 #### D. Libretro Core Binary Rationale (glibc 2.33 vs 2.34+)
 - **Problem**: Upstream Libretro raw buildbots targeting `aarch64` moved to modern build hosts using glibc >= 2.34. In glibc 2.34, POSIX threading (`libpthread`) and dynamic linking (`libdl`) symbols were merged into `libc.so.6`. Loading these binaries on TrimUI Brick's Plastron Linux OS (glibc 2.33) results in immediate symbol resolution failures during `dlopen()` (e.g. `dir_list_new`, `pthread_*`).

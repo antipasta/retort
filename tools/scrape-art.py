@@ -61,6 +61,7 @@ LIBRETRO = {
     "Game Gear": ["Sega - Game Gear"],
     "TurboGrafx-16": ["NEC - PC Engine - TurboGrafx 16",
                       "NEC - PC Engine CD - TurboGrafx-CD"],
+    "PlayStation": ["Sony - PlayStation"],
     # The two Pocket shelves, which this tool never had at all while the C port
     # did. Two machines, two catalogs: the mono Pocket's art is NOT in the
     # Color repo - checked, it 404s.
@@ -178,7 +179,7 @@ def main():
         failed = False
         for remote in remotes:
             try:
-                got = index(remote)
+                entries = index(remote)
             except (urllib.error.URLError, OSError) as e:
                 # Distinguished on purpose: a TLS or network failure is not
                 # "this game has no art", and reporting it as one is how a
@@ -186,9 +187,9 @@ def main():
                 print(f"  {folder:<20} INDEX FAILED ({remote}): {e}")
                 failed = True
                 break
-            for n in got:
+            for n in entries:
                 origin.setdefault(n, remote)
-            names.extend(got)
+            names.extend(entries)
         if failed:
             continue
 
