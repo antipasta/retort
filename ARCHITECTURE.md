@@ -214,6 +214,8 @@ sys|PlayStation|PlayStation|pcsx_rearmed|PS|PS.png|6A96DE|chd,cue,m3u,pbp,iso,im
 
 | Repository | Branch | Key Commits | Description |
 |:---|:---|:---|:---|
+| `/Users/joe/misc/TortOS` | `feature/shaders` | `e457d59` | GLSL shader support, menus, & resident IPC |
+| `/Users/joe/misc/diatom` | `feature/shaders` | `05280d8` | GLSL shader pipeline & dual-mode Brick rendering (ADR-0041, 0043) |
 | `/Users/joe/misc/TortOS` | `feature/neogeo-fbneo` | `1ab5298` | Neo Geo shelf config, card art, AES mode default |
 | `/Users/joe/misc/TortOS` | `feature/neogeo-fbneo` | `4af653a` | PlayStation shelf config, scraper entries, and card art |
 | `/Users/joe/misc/diatom` | `feature/fbneo-block-extract` | `4483620` | FBNeo block ROM loading support |
