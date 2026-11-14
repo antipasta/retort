@@ -212,7 +212,7 @@ sys|PlayStation|PlayStation|pcsx_rearmed|PS|PS.png|6A96DE|chd,cue,m3u,pbp,iso,im
 | Repository | Branch | Key Commits | Description |
 |:---|:---|:---|:---|
 | `/Users/joe/misc/TortOS` | `feature/neogeo-fbneo` | `1ab5298` | Neo Geo shelf config, card art, AES mode default |
-| `/Users/joe/misc/TortOS` | `feature/neogeo-fbneo` | Pending | PlayStation shelf config, scraper entries, and card art |
+| `/Users/joe/misc/TortOS` | `feature/neogeo-fbneo` | `4af653a` | PlayStation shelf config, scraper entries, and card art |
 | `/Users/joe/misc/diatom` | `feature/fbneo-block-extract` | `4483620` | FBNeo block ROM loading support |
 | `/Users/joe/misc/diatom` | `feature/gb-palette-cycling` | `cb7aa01` | Game Boy live L1/R1 palette switching |
 
