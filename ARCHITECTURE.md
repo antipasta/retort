@@ -243,7 +243,20 @@ docker run --rm -v $(pwd):/build -w /build debian:bookworm-slim sh -c \
 ```
 The compiled ARM64 binary outputs to `build/brick/diatom`.
 
-### D. Deploying to SD Card
+### D. Cross-Compiling TortOS Launcher (`tortos.elf`) for Plastron Linux
+> [!IMPORTANT]
+> **Do not use pre-built `tortos.elf` from plorpOS!**
+> `plorpOS` builds target stock TrimUI firmware, which hardcodes `/dev/input/event3` and relies on an external `inputd` daemon. On **Plastron Linux** (official TortOS OS), there is no `inputd`; the kernel exposes inputs directly as evdev nodes, and `src/device/brick.c` dynamically scans `/dev/input/event*` for `BTN_SOUTH`. Running a plorpOS ELF on Plastron Linux causes `no gamepad found` and unresponsive controls.
+
+To compile `tortos.elf` with the native Plastron Linux input driver:
+```sh
+cd /Users/joe/misc/TortOS
+docker run --rm -v $(pwd):/build -w /build debian:bookworm-slim sh -c \
+  "apt-get update && apt-get install -y --no-install-recommends build-essential libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsqlite3-dev libasound2-dev zlib1g-dev pkg-config && make -f mk/cross.mk CC=gcc SYSROOT='' BUILD=build-brick DEVICE=brick VERSION=2.2.0 build-brick/tortos.elf"
+```
+The compiled ARM64 binary outputs to `build-brick/tortos.elf`.
+
+### E. Deploying to SD Card
 ```sh
 # Copy compiled diatom binary to SD card
 cp /Users/joe/misc/diatom/build/brick/diatom /Volumes/<SD_CARD>/TortOS/diatom
