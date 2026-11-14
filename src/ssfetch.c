@@ -30,6 +30,7 @@ static const struct { const char *folder; int id; } SYS[] = {
 	{ "Game Gear",            21 },
 	{ "Neo Geo",             142 },
 	{ "SNES",                  4 },
+	{ "PlayStation",          57 },
 	{ "Neo Geo Pocket",       25 },
 	{ "Game Boy Color",       10 },
 	{ "Neo Geo Pocket Color", 82 },

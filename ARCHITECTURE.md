@@ -1,6 +1,6 @@
 # TortOS & Diatom Architecture & Customizations
 
-This document explains the architecture of TortOS and Diatom, detailing the modifications made for **SNK Neo Geo (FBNeo)** integration and **Game Boy live palette cycling (L1/R1)**, including the design rationale, inter-process communication, and rebuild instructions.
+This document explains the architecture of TortOS and Diatom, detailing the modifications made for **SNK Neo Geo (FBNeo)** integration, **Game Boy live palette cycling (L1/R1)**, and **Sony PlayStation 1 (PCSX ReARMed)** support, including the design rationale, inter-process communication, and rebuild instructions.
 
 ---
 
@@ -166,25 +166,73 @@ static const char *const gb_palettes[] = {
 
 ---
 
-## 4. Git Branches & Repositories
+## 4. Sony PlayStation (PSX) System & PCSX ReARMed Integration
+
+### Objective
+Enable Sony PlayStation 1 emulation on the TrimUI Brick using the PCSX ReARMed (`pcsx_rearmed_libretro.so`) core, providing full shelf integration, artwork, scraper support, and optimal performance.
+
+### Changes & Design Rationale
+
+#### A. Shelf Configuration (`TortOS/config/systems.cfg`)
+```ini
+sys|PlayStation|PlayStation|pcsx_rearmed|PS|PS.png|6A96DE|chd,cue,m3u,pbp,iso,img
+```
+- **Tag**: `PS` (used to key display settings, save states, and controller mappings).
+- **ROM Directory**: `Roms/PlayStation`.
+- **Supported Extensions**: `chd,cue,m3u,pbp,iso,img` (compressed CHD and multi-disc M3U are prioritized for storage efficiency and multi-disc convenience).
+- **Core**: `pcsx_rearmed` (`pcsx_rearmed_libretro.so`).
+- **Card Asset**: `PS.png`.
+- **Accent Color**: `#6A96DE` (PlayStation classic blue).
+
+#### B. Shelf Artwork (`TortOS/res/cards/`)
+- Classic theme card: `res/cards/classic/PS.png` (640x820 portrait card).
+- Fancy theme card: `res/cards/fancy/PS.png` (369x219 landscape card).
+- Sourced from the plorpOS distribution pipeline, formatted and optimized to TortOS dimension and color standards.
+
+#### C. Metadata & Art Scraping (`src/artscrape.c` & `src/ssfetch.c`)
+- **Libretro Art Scraping (`src/artscrape.c`)**: Added `{ "PlayStation", "Sony - PlayStation", NULL }` to map the folder to Libretro thumbnail repository names.
+- **ScreenScraper API (`src/ssfetch.c`)**: Added `{ "PlayStation", 57 }` matching ScreenScraper system ID 57.
+
+#### D. Libretro Core Binary Rationale (glibc 2.33 vs 2.34+)
+- **Problem**: Upstream Libretro raw buildbots targeting `aarch64` moved to modern build hosts using glibc >= 2.34. In glibc 2.34, POSIX threading (`libpthread`) and dynamic linking (`libdl`) symbols were merged into `libc.so.6`. Loading these binaries on TrimUI Brick's Plastron Linux OS (glibc 2.33) results in immediate symbol resolution failures during `dlopen()` (e.g. `dir_list_new`, `pthread_*`).
+- **Solution**: We reuse the hardened build from plorpOS (`plorpOS-v1.9-brick`), compiled against Debian Bullseye (`aarch64-linux-gnu-gcc` targeting GLIBC 2.17 compatibility) with `-DHAVE_PHYSICAL_CDROM=0`. This core is verified to run smoothly on Cortex-A53 without missing symbol crashes.
+
+#### E. Controls & Input Mapping
+- The TrimUI Brick features a D-pad, four face buttons (A, B, X, Y), Start, Select, and four shoulder buttons (L1, R1, L2, R2).
+- Diatom's RetroPad abstraction maps 1:1 to standard PlayStation digital controller inputs. No custom input remapping or Diatom code changes are required.
+
+#### F. BIOS & Firmware Handling
+- PCSX ReARMed includes a built-in High-Level Emulation (HLE) BIOS, allowing games to run out of the box without requiring copyrighted Sony BIOS files.
+- For maximum compatibility and the authentic boot sequence, users can place real BIOS dumps (`psxonpsp660.bin`, `scph1001.bin`, `scph5501.bin`, `scph7001.bin`) into `Bios/` on the SD card.
+
+---
+
+## 5. Git Branches & Repositories
 
 | Repository | Branch | Key Commits | Description |
 |:---|:---|:---|:---|
 | `/Users/joe/misc/TortOS` | `feature/neogeo-fbneo` | `1ab5298` | Neo Geo shelf config, card art, AES mode default |
+| `/Users/joe/misc/TortOS` | `feature/neogeo-fbneo` | Pending | PlayStation shelf config, scraper entries, and card art |
 | `/Users/joe/misc/diatom` | `feature/fbneo-block-extract` | `4483620` | FBNeo block ROM loading support |
 | `/Users/joe/misc/diatom` | `feature/gb-palette-cycling` | `cb7aa01` | Game Boy live L1/R1 palette switching |
 
 ---
 
-## 5. Build & Deployment Instructions
+## 6. Build & Deployment Instructions
 
-### A. Testing Diatom
+### A. Testing TortOS Offline Checks
+```sh
+cd /Users/joe/misc/TortOS
+make check
+```
+
+### B. Testing Diatom
 ```sh
 cd /Users/joe/misc/diatom
 make check
 ```
 
-### B. Cross-Compiling Diatom for TrimUI Brick (`aarch64`)
+### C. Cross-Compiling Diatom for TrimUI Brick (`aarch64`)
 ```sh
 cd /Users/joe/misc/diatom
 docker run --rm -v $(pwd):/build -w /build debian:bookworm-slim sh -c \
@@ -192,11 +240,14 @@ docker run --rm -v $(pwd):/build -w /build debian:bookworm-slim sh -c \
 ```
 The compiled ARM64 binary outputs to `build/brick/diatom`.
 
-### C. Deploying to SD Card
+### D. Deploying to SD Card
 ```sh
 # Copy compiled diatom binary to SD card
 cp /Users/joe/misc/diatom/build/brick/diatom /Volumes/<SD_CARD>/TortOS/diatom
 
 # Copy TortOS update bundle if updating full system
 cp -r /Users/joe/misc/TortOS/out/brick-neogeo-update/TortOS/* /Volumes/<SD_CARD>/TortOS/
+
+# Create PlayStation ROM folder on SD card
+mkdir -p /Volumes/<SD_CARD>/Roms/PlayStation
 ```
