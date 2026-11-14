@@ -72,6 +72,10 @@ static const db_default library_defaults[] = {
 	 * Donkey Kong Country 1.55x to 1.63x and Sonic 2.05x at 3x and 4x. */
 	{ "coreopt..snes9x_2010_frameskip",     "auto" },
 	{ "coreopt..genesis_plus_gx_frameskip", "auto" },
+
+	/* European/English AES mode for FBNeo: console mode gives English text
+	 * and menus, and avoids UniBIOS which is banned by RetroAchievements. */
+	{ "coreopt.NEOGEO.fbneo-neogeo-mode",   "AES_EUR" },
 };
 
 const db_default *db_defaults(db_scope scope, size_t *count)

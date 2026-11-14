@@ -52,6 +52,7 @@
 #include "ui.h"
 #include "wifi_menu.h"
 #include "update.h"
+#include "titles.h"
 #include "../tools/tortos-update/sha256.h"
 
 #include <SDL.h>
@@ -6336,6 +6337,14 @@ static void gi_gather(app *a, int owner, const game_entry *g, game_info *gi)
  * difference between twenty images and a hundred and eighty. It is worth much
  * less afterwards: since the direct-name pass landed, a whole-library re-run
  * over a full card is nine directory sweeps and no network at all. */
+static const char *fbneo_dat(void)
+{
+	static char p[CFG_STR * 2];
+
+	if (!p[0]) snprintf(p, sizeof p, "%s/res/fbneo-titles.tsv", P_ROOT);
+	return p;
+}
+
 static void art_screen(app *a, const char *only, const char *one,
                        const char *stem, const char *one_file, unsigned accent)
 {
@@ -6467,9 +6476,9 @@ static void art_screen(app *a, const char *only, const char *one,
 				one.count = 1;
 				break;
 			}
-		art_begin(&one, P_ROMS, stem);
+		art_begin(&one, P_ROMS, fbneo_dat(), stem);
 	} else {
-		art_begin(&a->sys, P_ROMS, NULL);
+		art_begin(&a->sys, P_ROMS, fbneo_dat(), NULL);
 	}
 
 	while (!done && !want_quit && a->running) {
@@ -12233,6 +12242,8 @@ static void scan_all(app *a)
 	for (int i = 0; i < a->sys.count; i++) {
 		sysview *v = &a->view[i];
 		lib_scan(P_ROMS, a->sys.systems[i].folder, a->sys.systems[i].exts, &v->list);
+		titles_apply(&v->list, a->sys.systems[i].folder,
+		             strcmp(a->sys.systems[i].core, "fbneo") ? NULL : fbneo_dat());
 		if (v->list.count > 0) {
 			v->tex = calloc((size_t)v->list.count, sizeof *v->tex);
 			v->tw = calloc((size_t)v->list.count, sizeof *v->tw);
@@ -13173,7 +13184,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "scrape: %s, ScreenScraper %s\n",
 		        only_sys ? only_sys : "every shelf",
 		        ss_signed_in() ? "signed in" : "not signed in");
-		art_begin(only_sys ? &one : &all, P_ROMS, NULL);
+		art_begin(only_sys ? &one : &all, P_ROMS, fbneo_dat(), NULL);
 		while ((r = art_step()) == 1) {
 			art_status(&st);
 			/* One line per thing it turns to, not per step: a step is mostly

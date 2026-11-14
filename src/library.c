@@ -92,7 +92,12 @@ static bool folder_launch_file(const char *dirpath, char *out, size_t outsz)
 
 static int game_cmp(const void *pa, const void *pb)
 {
-	return strcasecmp(((const game_entry *)pa)->name, ((const game_entry *)pb)->name);
+	return lib_order(pa, pb);
+}
+
+void lib_sort(game_list *l)
+{
+	if (l->count > 1) qsort(l->items, (size_t)l->count, sizeof *l->items, game_cmp);
 }
 
 /* The display title: `name` up to the first bracketed group that follows a
