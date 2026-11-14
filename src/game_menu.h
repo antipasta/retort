@@ -100,14 +100,18 @@ int gi_rows(menu_row *out, const game_info *gi, bool net);
 
 /* ---------- the in-game menu ---------------------------------------------- */
 
+#include "shaderlist.h"
+
 typedef enum {
-	GM_CONTINUE, GM_SAVE, GM_LOAD, GM_DISPLAY, GM_CHEEVOS, GM_RESET, GM_QUIT,
+	GM_CONTINUE, GM_SAVE, GM_LOAD, GM_DISPLAY, GM_SHADER, GM_CHEEVOS, GM_RESET, GM_QUIT,
 	GM_ROWS
 } gm_row;
 
 /* What the in-game menu needs to know, gathered by the caller. */
 typedef struct {
 	const char *dmode;    /* the display mode's label */
+	const char *shader;   /* the shader's label */
+	bool        shaders;  /* whether there is a shader list to pick from */
 	int         earned;
 	int         total;    /* 0: this game has no achievement set */
 } gm_ui;

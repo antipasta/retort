@@ -255,7 +255,8 @@ static int d_got_running;
 bool plat_resident_send(const char *tag, const char *core, const char *rom,
                         const char *resume, const char *exit_state,
                         const char *preview,
-                        int console, const char *cheevos)
+                        int console, const char *cheevos,
+                        const char *shader)
 {
 	plat_set_power_pressed(false);
 	/* A new game has not reported RUNNING yet. Cleared HERE rather than in
@@ -299,6 +300,19 @@ bool plat_resident_send(const char *tag, const char *core, const char *rom,
 		 * game started while music plays never makes a sound - and sent
 		 * every time, a resident that restarted cannot start loud. */
 		if (dsend("SETQUIET\ton=%d", d_quiet)) d_quiet_said = d_quiet;
+
+		/* The shader before RUN too (plorpos-reo.4.2). RUN's warmup draws
+		 * three frames before Diatom reads another message, so a chain sent
+		 * after it showed the game plain first - and on the Brick, where a
+		 * chain means a GL window, plain, then None's window down, then the
+		 * chain's up: a black flash on every launch. Sent here, the first
+		 * frame is drawn with it. None first: a chain Diatom refuses then
+		 * leaves the plain picture, not the last game's (ADR-0041). */
+		if (shader) {
+			dsend("SETDISPLAY\tshader=none");
+			if (*shader) dsend("SETDISPLAY\t%s", shader);
+		}
+
 		/* The channels for quiet's reasons: before RUN, so the first sample is
 		 * already in the right ear, and every time, so a resident that
 		 * restarted cannot start in stereo for a player who hears with one. */

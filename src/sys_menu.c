@@ -123,6 +123,7 @@ int sys_menu_build(const sys_ui *u, menu_row *out, menu_bufs *b,
 		full[SM_SORT]    = (menu_row){ "Sort By",
 		                              u->sort ? u->sort : "Name", true  };
 		full[SM_DISPLAY] = (menu_row){ "Display Mode",  u->dmode,    true  };
+		full[SM_SHADER]  = (menu_row){ "Default " SHADER_LABEL, SHADER_VALUE(u->shader ? u->shader : "None"), u->shader_live };
 		/* Button Mapping is out until there is something behind it. Diatom
 		 * supplies core button labels, so the hook is real - but a dead row
 		 * in a menu of live ones is a promise the launcher is not keeping,

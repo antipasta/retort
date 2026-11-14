@@ -431,6 +431,8 @@ static void system_menu(void)
 	u.sys_core = "gambatte";
 	u.game_count = 412;
 	u.dmode = "Sharp";
+	u.shader = "Scanlines";
+	u.shader_live = true;
 	n = sys_menu_build(&u, rows, &b, &heading);
 
 	printf("system menu:\n");
@@ -439,6 +441,9 @@ static void system_menu(void)
 	ck(!strcmp(val(&rows[SM_GAMES]), "412"), "the count is the real one");
 	ck(!strcmp(val(&rows[SM_CORE]), "gambatte"), "the core is the real one");
 	ck(!strcmp(val(&rows[SM_DISPLAY]), "Sharp"), "display mode is passed through");
+	ck(!strcmp(rows[SM_SHADER].label, "Default " SHADER_LABEL), "Shader sits in system menu");
+	ck(!strcmp(val(&rows[SM_SHADER]), "Scanlines"), "Shader carries default name");
+	ck(rows[SM_SHADER].live, "Shader is live when shader_live = true");
 	ck(rows[SM_DISPLAY].live && rows[SM_RESCAN].live, "the two live rows are live");
 	ck(!rows[SM_GAMES].live && !rows[SM_CORE].live, "reported facts are not rows to press");
 	ck(rows[SM_BOXART].live, "Box Art is live on a network");
@@ -935,26 +940,35 @@ static void ingame_rows(void)
 	menu_row rows[GM_ROWS];
 	int got[GM_ROWS], n, k;
 
+	memset(&u, 0, sizeof u);
 	u.dmode = "Native"; u.earned = 12; u.total = 40;
+	u.shader = "Scanlines"; u.shaders = true;
 	n = gm_rows(&u, rows, &b);
 
 	printf("in-game menu, a game with a set:\n");
-	ck(n == GM_ROWS, "seven rows");
+	ck(n == GM_ROWS, "eight rows");
 	ck(!strcmp(rows[GM_CONTINUE].label, "Continue"), "Continue leads");
 	ck(!strcmp(val(&rows[GM_DISPLAY]), "Native"), "Display carries the mode");
+	ck(!strcmp(rows[GM_SHADER].label, SHADER_LABEL), "Shader row present");
+	ck(!strcmp(val(&rows[GM_SHADER]), "Scanlines"), "Shader carries value");
+	ck(rows[GM_SHADER].live, "Shader is live with shaders = true");
 	ck(!strcmp(val(&rows[GM_CHEEVOS]), "12 / 40"), "Cheevos counts the set");
 	ck(rows[GM_CHEEVOS].live, "and is reachable");
 	k = reachable(rows, n, got, GM_ROWS);
 	ck(k == GM_ROWS, "every row is a stop");
 
 	u.earned = 0; u.total = 0;
+	u.shaders = false;
 	n = gm_rows(&u, rows, &b);
-	printf("in-game menu, a game with no set:\n");
+	printf("in-game menu, a game with no set and no shaders:\n");
 	ck(!strcmp(val(&rows[GM_CHEEVOS]), "none"), "Cheevos says none");
 	ck(!rows[GM_CHEEVOS].live, "and does nothing");
+	ck(!strcmp(val(&rows[GM_SHADER]), "None"), "Shader says None");
+	ck(!rows[GM_SHADER].live, "and does nothing");
 	k = reachable(rows, n, got, GM_ROWS);
-	ck(k == GM_ROWS - 1, "so the cursor steps over it");
-	ck(!holds(got, k, GM_CHEEVOS), "and never rests on it");
+	ck(k == GM_ROWS - 2, "so the cursor steps over both");
+	ck(!holds(got, k, GM_CHEEVOS), "and never rests on cheevos");
+	ck(!holds(got, k, GM_SHADER), "and never rests on shader");
 	ck(holds(got, k, GM_QUIT) && holds(got, k, GM_CONTINUE),
 	   "the rows either side of it still work");
 }

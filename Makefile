@@ -8,7 +8,7 @@
 .PHONY: all clean native vendor boot checkmark \
         check check-cheevos check-hare check-httpd check-idle check-rahash \
         check-raset check-xfer check-menus check-artscrape check-artrun check-audioout \
-        check-db check-stats check-sort check-bt check-ss check-update check-asan
+        check-db check-stats check-sort check-bt check-ss check-update check-asan check-shaderlist
 
 all: check
 
@@ -20,7 +20,7 @@ CHECKS = check-cheevos check-hare check-httpd check-idle check-rahash \
          check-raset check-xfer check-menus check-artscrape check-artrun check-audioout \
          check-db check-stats check-sort check-bt check-ss \
          check-muselib check-musequeue check-museart check-controls check-logpack \
-         check-clock check-update check-release
+         check-clock check-update check-release check-shaderlist
 
 check:
 	@fail=0; for c in $(CHECKS); do \
@@ -391,6 +391,16 @@ build-native/museart-check: tools/museart-check.c src/museart.c src/museart.h \
 # failure is silent otherwise, and it ships.
 checkmark:
 	python3 tools/checkmark.py
+
+# The in-game Shader list: its parser, and the shipped res/shaders/shaders.cfg
+# with every file it names. Links src/shaderlist.c and NOT SDL.
+check-shaderlist: build-native/shaderlist-check
+	@./build-native/shaderlist-check
+
+build-native/shaderlist-check: tools/shaderlist-check.c src/shaderlist.c src/shaderlist.h FORCE
+	@mkdir -p build-native
+	$(CC) -std=gnu11 -Wall -Wextra -D_GNU_SOURCE -O1 -g \
+	      -o $@ tools/shaderlist-check.c src/shaderlist.c
 
 clean:
 	rm -rf build build-native out

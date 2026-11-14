@@ -125,7 +125,8 @@ bool plat_resident_await(unsigned max_ms, unsigned *waited_ms);
 bool plat_resident_send(const char *tag, const char *core, const char *rom,
                         const char *resume, const char *exit_state,
                         const char *preview,
-                        int console, const char *cheevos);
+                        int console, const char *cheevos,
+                        const char *shader);
 int  plat_resident_wait(void);
 
 /* Called from inside plat_resident_wait when Diatom reports an achievement

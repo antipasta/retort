@@ -42,6 +42,8 @@ typedef enum {
 	PM_CONTROLS, PM_UPDATE, PM_ABOUT, PM_ROWS
 } pm_row;
 
+#include "shaderlist.h"
+
 /* The system menu. Games and Core carry real values rather than invented ones,
  * because a placeholder that lies about the machine it is describing is worse
  * than no row. The rest name capabilities that already exist on the emulator
@@ -49,7 +51,7 @@ typedef enum {
  * so these are hooks waiting to be wired, not wishes. */
 typedef enum {
 	SM_GAMES, SM_CORE, SM_SORT,
-	SM_DISPLAY, /* SM_BUTTONS, */ SM_BOXART, SM_RESCAN, SM_ROWS
+	SM_DISPLAY, SM_SHADER, /* SM_BUTTONS, */ SM_BOXART, SM_RESCAN, SM_ROWS
 } sm_row;
 
 /* What the Favorites shelf's menu is, which is two of those rows.
@@ -188,6 +190,8 @@ typedef struct {
 	const char *sys_core;
 	int         game_count;
 	const char *dmode;
+	const char *shader;
+	bool        shader_live;
 	/* The label of the shelf's sort order. A label rather than an index for
 	 * the same reason dmode is one: this file must not know the table, or a
 	 * check that links it would have to link the table too. */

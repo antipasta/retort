@@ -19,6 +19,7 @@
 #include "btvol.h"
 #include "bt_menu.h"
 #include "db.h"
+#include "shaderlist.h"
 #include "stats.h"
 #include "sort.h"
 #include "coverflow.h"
@@ -103,6 +104,7 @@ typedef struct {
 	 * whatever sits at index 0 is what an untouched card plays at - see the
 	 * note on DMODES itself. */
 	int dmode;
+	int shader;
 	/* Index into SORTS. Zero is by name, which is what every shelf was
 	 * before this existed and what an untouched one still is. On Muse's
 	 * shelf an ml_order instead, whose zero is by artist. */
@@ -152,6 +154,7 @@ static const struct { const char *name, *label; } DMODES[] = {
 
 typedef struct {
 	systems_cfg sys;
+	sl_list shaders;
 
 	SDL_Texture *sys_tex[CFG_MAX_SYSTEMS];
 	int sys_w[CFG_MAX_SYSTEMS], sys_h[CFG_MAX_SYSTEMS];
@@ -285,6 +288,61 @@ static void display_save(app *a)
 		snprintf(key, sizeof key, "display.%s", a->sys.systems[i].tag);
 		db_set_str(db_dev(), key, DMODES[a->view[i].dmode].name);
 	}
+}
+
+/* shader.<TAG>, beside display.<TAG> and keyed the same way. The list is read
+ * here too: its names are what the rows hold, so the two belong together. A
+ * name the list no longer has is None (sl_find) - an entry renamed or dropped
+ * from shaders.cfg sends its systems back to the plain picture. */
+static void shader_load(app *a)
+{
+	char path[CFG_STR * 2], key[CFG_STR + 16], name[SL_NAME];
+	int i;
+
+	snprintf(path, sizeof path, "%s/shaders/shaders.cfg", P_ROOT);
+	sl_load(&a->shaders, path);
+	for (i = 0; i < a->sys.count; i++) {
+		snprintf(key, sizeof key, "shader.%s", a->sys.systems[i].tag);
+		a->view[i].shader = db_get_str(db_dev(), key, name, sizeof name, NULL)
+		                    ? sl_find(&a->shaders, name) : 0;
+	}
+}
+
+static void shader_save(app *a, int sys)
+{
+	char key[CFG_STR + 16];
+
+	snprintf(key, sizeof key, "shader.%s", a->sys.systems[sys].tag);
+	db_set_str(db_dev(), key, a->shaders.e[a->view[sys].shader].name);
+}
+
+static const char *shader_fields(app *a, int i, char *f, size_t cap)
+{
+	char dir[CFG_STR * 2];
+
+	if (a->shaders.count <= 1) return NULL;
+	snprintf(dir, sizeof dir, "%s/shaders", P_ROOT);
+	if (i == 0 || !sl_fields(&a->shaders, i, dir, f, cap)) return "";
+	return f;
+}
+
+static int game_shader(app *a, int sys, const game_entry *g)
+{
+	char key[LIB_PATH + 48], name[SL_NAME];
+
+	if (!g || !g->file) return a->view[sys].shader;
+	snprintf(key, sizeof key, "shader.%s.%s", a->sys.systems[sys].tag, g->file);
+	return db_get_str(db_dev(), key, name, sizeof name, NULL)
+	       ? sl_find(&a->shaders, name) : a->view[sys].shader;
+}
+
+static void game_shader_save(app *a, int sys, const game_entry *g, int i)
+{
+	char key[LIB_PATH + 48];
+
+	if (!g || !g->file) return;
+	snprintf(key, sizeof key, "shader.%s.%s", a->sys.systems[sys].tag, g->file);
+	db_set_str(db_dev(), key, a->shaders.e[i].name);
 }
 
 /* ---------- per-system sort order ----------------------------------------- */
@@ -889,6 +947,16 @@ static int shelf_owner(app *a, int sysidx, int item)
  * every system reads stretch and all the answers agree. Named as a function
  * rather than repeated at each site so the next per-system setting has one
  * obvious thing to call. */
+/* The game under the cursor - the one playing, while an in-game menu is up -
+ * and in *sys the system it belongs to, whose defaults it falls back to. */
+static const game_entry *playing(app *a, int *sys)
+{
+	sysview *v = &a->view[a->sys_cursor];
+
+	*sys = shelf_owner(a, a->sys_cursor, v->cursor);
+	return (v->cursor >= 0 && v->cursor < v->list.count) ? &v->list.items[v->cursor] : NULL;
+}
+
 static sysview *owner_view(app *a)
 {
 	sysview *v = &a->view[a->sys_cursor];
@@ -4831,7 +4899,9 @@ static int menu_build(app *a, screen_id screen, int sys,
 		u.muse       = is_muse(sc);
 		u.fav        = !u.muse && sc->core[0] == '\0' && sc->folder[0] == '\0';
 		u.game_count = a->view[sys].list.count;
-		u.dmode      = DMODES[a->view[sys].dmode].label;
+		u.dmode       = DMODES[a->view[sys].dmode].label;
+		u.shader      = a->shaders.e[a->view[sys].shader].name;
+		u.shader_live = a->shaders.count > 1;
 		u.muse_books = u.muse && muse_books_shown();
 		u.muse_both  = u.muse && ml_count(&g_muse, true) && ml_count(&g_muse, false);
 		u.muse_playing = u.muse && lock_allowed();
@@ -7995,6 +8065,13 @@ static int menu_shelf_width(app *a)
 			if (mw > w) w = mw;
 		}
 		if (!own) rows[SM_DISPLAY].value = DMODES[0].label;
+		for (k = 0; !own && k < a->shaders.count; k++) {
+			int mw;
+			rows[SM_SHADER].value = a->shaders.e[k].name;
+			mw = menu_measure(rows, n, heading);
+			if (mw > w) w = mw;
+		}
+		if (!own && a->shaders.count > 0) rows[SM_SHADER].value = a->shaders.e[0].name;
 		for (k = 0; k < (muse ? ML_ORDERS : SORT_COUNT); k++) {
 			int mw;
 			rows[srow].value = muse ? ml_order_label((ml_order)k, false) : SORTS[k].label;
@@ -8124,6 +8201,8 @@ static void clock_screen(app *a)
 	menu_run(a, &st, clock_build, clock_key, &c);
 }
 
+static void shelf_shader_screen(app *a, int sys);
+
 static void tortos_menu_draw(app *a, int sel)
 {
 	menu_row rows[MENU_MAX_ROWS];
@@ -8227,6 +8306,20 @@ static menu_result sysmenu_key(app *a, void *ctx, in_button key, int sel)
 
 			v->dmode = (v->dmode + d + DMODE_COUNT) % DMODE_COUNT;
 			display_save(a);
+			return MENU_STAY;
+		}
+		/* Shader: left and right step through the list, as
+		 * Display Mode does; A opens it, as the in-game row does. Saved for
+		 * the system, which is what a launch and the in-game row both read. */
+		if (sel == SM_SHADER && (d || key == IN_ACCEPT) && a->shaders.count > 1) {
+			sysview *v = &a->view[a->sys_cursor];
+
+			if (d) {
+				v->shader = (v->shader + d + a->shaders.count) % a->shaders.count;
+				shader_save(a, a->sys_cursor);
+			} else {
+				shelf_shader_screen(a, a->sys_cursor);
+			}
 			return MENU_STAY;
 		}
 		/* Sort order, on the same left/right idiom.
@@ -8731,13 +8824,17 @@ static void gm_cycle_display(app *a, int d)
 static int gm_build(app *a, menu_row *out, gm_bufs *b)
 {
 	gm_ui u;
+	int sys;
+	const game_entry *g = playing(a, &sys);
 
 	/* The owner's mode, as gm_cycle_display changes it: from Favorites the
 	 * shelf's own view is FAV's, which nobody sets, so the row read
 	 * "Stretch" whatever the game was playing at (TortOS#76) */
-	u.dmode  = DMODES[owner_view(a)->dmode].label;
-	u.earned = chv_earned();
-	u.total  = chv_count();
+	u.dmode   = DMODES[owner_view(a)->dmode].label;
+	u.shader  = a->shaders.count ? a->shaders.e[game_shader(a, sys, g)].name : "None";
+	u.shaders = a->shaders.count > 1;
+	u.earned  = chv_earned();
+	u.total   = chv_count();
 	return gm_rows(&u, out, b);
 }
 
@@ -10519,6 +10616,14 @@ static int gm_width(app *a)
 		mw = menu_measure(rows, GM_ROWS, NULL);
 		if (mw > w) w = mw;
 	}
+	/* And every shader name, for the same reason: picking one must not
+	 * resize the panel the player comes back to. */
+	for (k = 0; k < a->shaders.count && rows[GM_SHADER].live; k++) {
+		int mw;
+		rows[GM_SHADER].value = a->shaders.e[k].name;
+		mw = menu_measure(rows, GM_ROWS, NULL);
+		if (mw > w) w = mw;
+	}
 	return w;
 }
 
@@ -10569,6 +10674,91 @@ static menu_result gm_power(app *a, void *ctx)
 	plat_note_power_pressed();
 	plat_resident_line("STOP");
 	return MENU_DONE;
+}
+
+typedef struct {
+	app              *a;
+	gm_ctx           *gm;   /* NULL from shelf menu */
+	int               sys;  /* owner sys */
+	const game_entry *g;    /* NULL from shelf menu */
+} sh_ctx;
+
+static int sh_cur(app *a, const sh_ctx *c)
+{
+	return c->g ? game_shader(a, c->sys, c->g) : a->view[c->sys].shader;
+}
+
+static sh_ctx sh_game(app *a, gm_ctx *gm)
+{
+	sh_ctx c = { a, gm, 0, NULL };
+
+	c.g = playing(a, &c.sys);
+	return c;
+}
+
+static int sh_build(void *ctx, menu_row *rows, int max, const char **heading)
+{
+	sh_ctx *c = ctx;
+	app *a = c->a;
+	int i, n = a->shaders.count < max ? a->shaders.count : max;
+
+	for (i = 0; i < n; i++)
+		rows[i] = (menu_row){ a->shaders.e[i].name,
+		                      i == sh_cur(a, c) ? "Current" : NULL, true };
+	*heading = c->g ? SHADER_LABEL : "Default " SHADER_LABEL;
+	return n;
+}
+
+static menu_result sh_key(app *a, void *ctx, in_button key, int sel)
+{
+	sh_ctx *c = ctx;
+	char f[1024], dir[CFG_STR * 2];
+
+	if (key != IN_ACCEPT) return MENU_STAY;
+	if (sel == sh_cur(a, c)) return MENU_DONE;
+	snprintf(dir, sizeof dir, "%s/shaders", P_ROOT);
+	if (!sl_fields(&a->shaders, sel, dir, f, sizeof f)) return MENU_DONE;
+	plat_resident_line("SETDISPLAY\t%s", f);
+	if (!plat_resident_sync_rect(2000)) {
+		fprintf(stderr, "shader: %s not applied\n", a->shaders.e[sel].name);
+		return MENU_DONE;
+	}
+	game_shader_save(a, c->sys, c->g, sel);
+	return MENU_DONE;
+}
+
+static void sh_backdrop(app *a, void *ctx) { gm_backdrop(a, ((sh_ctx *)ctx)->gm); }
+static menu_result sh_power(app *a, void *ctx) { return gm_power(a, ((sh_ctx *)ctx)->gm); }
+
+static void shader_screen(app *a, gm_ctx *gm)
+{
+	sh_ctx c = sh_game(a, gm);
+	menu_style st = gm->st;
+
+	st.fixed_w  = 0;
+	st.backdrop = sh_backdrop;
+	st.on_power = sh_power;
+	st.start    = sh_cur(a, &c);
+	menu_run(a, &st, sh_build, sh_key, &c);
+}
+
+static menu_result shs_key(app *a, void *ctx, in_button key, int sel)
+{
+	sh_ctx *c = ctx;
+
+	if (key != IN_ACCEPT) return MENU_STAY;
+	a->view[c->sys].shader = sel;
+	shader_save(a, c->sys);
+	return MENU_DONE;
+}
+
+static void shelf_shader_screen(app *a, int sys)
+{
+	sh_ctx c = { a, NULL, sys, NULL };
+	menu_style st = { .accent = MENU_ACCENT, .follow_tint = true,
+	                  .start = a->view[sys].shader };
+
+	menu_run(a, &st, sh_build, shs_key, &c);
 }
 
 static menu_result gm_key(app *a, void *ctx, in_button key, int sel)
@@ -10625,6 +10815,9 @@ static menu_result gm_key(app *a, void *ctx, in_button key, int sel)
 	 * was a row that looked broken. */
 	case GM_DISPLAY:
 		gm_cycle_display(a, +1);
+		break;
+	case GM_SHADER:
+		shader_screen(a, c);
 		break;
 	case GM_CHEEVOS:
 		cheevos_screen(a, c->bg, false);
@@ -10943,8 +11136,10 @@ static void launch(app *a)
 		 * the in-game menu, which is drawn HERE now, over the frame the
 		 * emulator hands us on the way into its pause. */
 		aout_before_launch();
+		char shf[1024];
 		if (plat_resident_send(s->tag, core, rom, st, st, pv,
-		                       console, active[0] ? active : NULL)) {
+		                       console, active[0] ? active : NULL,
+		                       shader_fields(a, game_shader(a, o, &v->list.items[v->cursor]), shf, sizeof shf))) {
 			int r;
 
 			/* The list Diatom was just handed, for an early answer to trim. */
@@ -12352,6 +12547,7 @@ static void rescan_all(app *a)
 
 	scan_all(a);
 	display_load(a);     /* indexes by tag, so it is safe to run again */
+	shader_load(a);
 	sort_load(a);
 	sort_all(a);
 
@@ -13330,6 +13526,7 @@ int main(int argc, char *argv[])
 	/* After the scan, because it indexes by system, and before anything can
 	 * launch, because the mode has to reach Diatom with the first RUN. */
 	display_load(&a);
+	shader_load(&a);
 	sort_load(&a);
 	sort_all(&a);
 	t_mark("scan");
