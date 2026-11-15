@@ -20,6 +20,10 @@
  * comes in from the caller, so all of it builds and is checked on the Mac
  * (make check-release). */
 
+#ifndef UPDATE_IMAGE_PREFIX
+#define UPDATE_IMAGE_PREFIX "Retort-"
+#endif
+
 /* Where the answer comes from. A development build can point it elsewhere
  * (-DUPDATE_FEED=...), to try an update against a release served locally, and
  * may then download over plain http. Nothing on the card can change it: the
@@ -27,7 +31,7 @@
 #ifdef UPDATE_FEED
 #define UPDATE_FEED_IS_DEV 1
 #else
-#define UPDATE_FEED "https://api.github.com/repos/ericreinsmidt/TortOS/releases/latest"
+#define UPDATE_FEED "https://api.github.com/repos/antipasta/retort/releases/latest"
 #define UPDATE_FEED_IS_DEV 0
 #endif
 
@@ -38,7 +42,7 @@
  * which checks it against that SHA-256: this only says where the bytes come
  * from. A development build can point it elsewhere with UPDATE_FEED. */
 #ifndef UPDATE_FILES
-#define UPDATE_FILES "https://ericreinsmidt.github.io/TortOS/"
+#define UPDATE_FILES "https://antipasta.github.io/retort/"
 #endif
 
 /* At most one check a day: a menu opened between checks shows the answer

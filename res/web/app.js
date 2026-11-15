@@ -1056,10 +1056,11 @@ function readRelease(j, device) {
 		return null;
 	const version = j.tag_name.slice(1);
 	if (!verParts(version)) return null;
-	const file = 'TortOS-v' + version + '-' + device + '.img.xz';
-	const a = (j.assets || []).find((x) => x && x.name === file);
+	const want1 = 'Retort-v' + version + '-' + device + '.img.xz';
+	const want2 = 'TortOS-v' + version + '-' + device + '.img.xz';
+	const a = (j.assets || []).find((x) => x && (x.name === want1 || x.name === want2));
 	if (!a || !(a.size > 0) || !/^sha256:[0-9a-f]{64}$/.test(a.digest || '')) return null;
-	return { version, file, size: a.size, sha256: a.digest.slice(7),
+	return { version, file: a.name, size: a.size, sha256: a.digest.slice(7),
 	         notes: typeof j.html_url === 'string' ? j.html_url : '',
 	         direct: typeof a.browser_download_url === 'string' ? a.browser_download_url : '' };
 }

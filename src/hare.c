@@ -447,11 +447,16 @@ static void update_have(char *out, size_t n)
 	if (!g_up_dir[0] || !(d = opendir(g_up_dir))) return;
 	while ((e = readdir(d))) {
 		size_t len = strlen(e->d_name), tl = strlen(tail);
+		size_t pfx = 0;
 
-		if (len > 8 + tl && !strncmp(e->d_name, "TortOS-v", 8) &&
-		    !strcmp(e->d_name + len - tl, tail) && len - 8 - tl < n) {
-			memcpy(out, e->d_name + 8, len - 8 - tl);
-			out[len - 8 - tl] = '\0';
+		if (!strncmp(e->d_name, UPDATE_IMAGE_PREFIX "v", strlen(UPDATE_IMAGE_PREFIX) + 1))
+			pfx = strlen(UPDATE_IMAGE_PREFIX) + 1;
+		else if (!strncmp(e->d_name, "TortOS-v", 8))
+			pfx = 8;
+
+		if (pfx && len > pfx + tl && !strcmp(e->d_name + len - tl, tail) && len - pfx - tl < n) {
+			memcpy(out, e->d_name + pfx, len - pfx - tl);
+			out[len - pfx - tl] = '\0';
 			break;
 		}
 	}
