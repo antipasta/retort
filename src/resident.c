@@ -251,12 +251,18 @@ void plat_resident_on_battery_empty(bool (*fn)(void)) { d_battery_empty = fn; }
  * to 0 on each re-entry made a running game look like one that never started.
  * The cost was not cosmetic - see the ERROR arm in diatom_wait. */
 static int d_got_running;
+static char d_shader[1024];
+
+void plat_resident_set_shader(const char *shader)
+{
+	if (shader) snprintf(d_shader, sizeof d_shader, "%s", shader);
+	else d_shader[0] = '\0';
+}
 
 bool plat_resident_send(const char *tag, const char *core, const char *rom,
                         const char *resume, const char *exit_state,
                         const char *preview,
-                        int console, const char *cheevos,
-                        const char *shader)
+                        int console, const char *cheevos)
 {
 	plat_set_power_pressed(false);
 	/* A new game has not reported RUNNING yet. Cleared HERE rather than in
@@ -308,9 +314,10 @@ bool plat_resident_send(const char *tag, const char *core, const char *rom,
 		 * chain's up: a black flash on every launch. Sent here, the first
 		 * frame is drawn with it. None first: a chain Diatom refuses then
 		 * leaves the plain picture, not the last game's (ADR-0041). */
-		if (shader) {
+		if (d_shader[0]) {
 			dsend("SETDISPLAY\tshader=none");
-			if (*shader) dsend("SETDISPLAY\t%s", shader);
+			dsend("SETDISPLAY\t%s", d_shader);
+			d_shader[0] = '\0';
 		}
 
 		/* The channels for quiet's reasons: before RUN, so the first sample is

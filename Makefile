@@ -8,7 +8,7 @@
 .PHONY: all clean native vendor boot checkmark \
         check check-cheevos check-hare check-httpd check-idle check-rahash \
         check-raset check-xfer check-menus check-artscrape check-artrun check-audioout \
-        check-db check-stats check-sort check-bt check-ss check-update check-asan check-shaderlist
+        check-db check-stats check-sort check-bt check-ss check-update check-asan
 
 all: check
 
@@ -20,7 +20,7 @@ CHECKS = check-cheevos check-hare check-httpd check-idle check-rahash \
          check-raset check-xfer check-menus check-artscrape check-artrun check-audioout \
          check-db check-stats check-sort check-bt check-ss \
          check-muselib check-musequeue check-museart check-controls check-logpack \
-         check-clock check-update check-release check-shaderlist
+         check-clock check-update check-release
 
 check:
 	@fail=0; for c in $(CHECKS); do \
@@ -394,6 +394,8 @@ checkmark:
 
 # The in-game Shader list: its parser, and the shipped res/shaders/shaders.cfg
 # with every file it names. Links src/shaderlist.c and NOT SDL.
+.PHONY: check-shaderlist
+CHECKS += check-shaderlist
 check-shaderlist: build-native/shaderlist-check
 	@./build-native/shaderlist-check
 

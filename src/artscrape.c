@@ -1221,8 +1221,12 @@ void art_cancel(void)
 	g_nnames = 0;
 }
 
-void art_begin(const systems_cfg *sys, const char *roms_dir, const char *fbneo_dat,
-               const char *only)
+void art_set_fbneo_dat(const char *path)
+{
+	snprintf(g_fbneo_dat, sizeof g_fbneo_dat, "%s", path ? path : "");
+}
+
+void art_begin(const systems_cfg *sys, const char *roms_dir, const char *only)
 {
 	int i;
 
@@ -1239,7 +1243,8 @@ void art_begin(const systems_cfg *sys, const char *roms_dir, const char *fbneo_d
 	g_phase = P_SYSTEM;
 	g_nsys = 0;
 	snprintf(g_romdir, sizeof g_romdir, "%s", roms_dir ? roms_dir : "");
-	snprintf(g_fbneo_dat, sizeof g_fbneo_dat, "%s", fbneo_dat ? fbneo_dat : "");
+	if (!g_fbneo_dat[0] && access("res/fbneo-titles.tsv", R_OK) == 0)
+		snprintf(g_fbneo_dat, sizeof g_fbneo_dat, "res/fbneo-titles.tsv");
 	if (!sys) return;
 
 	/* A name cut short names a different game, so it is refused rather than

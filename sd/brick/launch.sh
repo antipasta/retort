@@ -52,6 +52,9 @@ for d in "$BIOS_PATH" "$ROMS_PATH" "$SAVES_PATH" "$USERDATA_PATH" "$LOGS_PATH" \
 	[ -d "$d" ] || mkdir -p "$d"
 done
 
+# Optional user/developer startup hook
+[ -f "$TORTOS_DIR/launch.user.sh" ] && . "$TORTOS_DIR/launch.user.sh"
+
 # One log per boot, carrying the launcher and everything it starts. Ten boots
 # kept: this one and tortos.log.1 to .9, newest first. One wasn't enough: a
 # player's report can come several reboots after the fault. Only the last

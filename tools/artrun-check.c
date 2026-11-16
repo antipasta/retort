@@ -314,7 +314,7 @@ static int run(const char *only, art_progress *out)
 
 	g_urls[0] = '\0';
 	g_nreq = 0;
-	art_begin(&sys, g_root, NULL, only);
+	art_begin(&sys, g_root, only);
 	while ((r = art_step()) == 1 && steps < 1000) steps++;
 	art_status(out);
 	return r;
@@ -541,7 +541,8 @@ int main(void)
 		g_index = NULL;
 		g_urls[0] = '\0';
 		g_nreq = 0;
-		art_begin(&sys, g_root, dat, NULL);
+		art_set_fbneo_dat(dat);
+		art_begin(&sys, g_root, NULL);
 		while ((r = art_step()) == 1 && steps < 1000) steps++;
 		CHECK(r == 0, "the run did not finish");
 		snprintf(p, sizeof p, "%s/mk3.png", media);
