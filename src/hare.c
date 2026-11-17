@@ -451,6 +451,10 @@ static void update_have(char *out, size_t n)
 
 		if (!strncmp(e->d_name, UPDATE_IMAGE_PREFIX "v", strlen(UPDATE_IMAGE_PREFIX) + 1))
 			pfx = strlen(UPDATE_IMAGE_PREFIX) + 1;
+		else if (!strncmp(e->d_name, "ReTort-v", 8))
+			pfx = 8;
+		else if (!strncmp(e->d_name, "Retort-v", 8))
+			pfx = 8;
 		else if (!strncmp(e->d_name, "TortOS-v", 8))
 			pfx = 8;
 
@@ -578,7 +582,7 @@ static void route_update(httpd_req *r, bool done)
 			return;
 		}
 		hare_update_state("checking", NULL);
-		note("checking TortOS %s", offer.version);
+		note("checking ReTort %s", offer.version);
 		if (g_up_received) g_up_received(&offer);
 		httpd_reply(r, 200, "text/plain", "ok", 2, NULL);
 		return;
@@ -608,7 +612,7 @@ static void route_update(httpd_req *r, bool done)
 		httpd_want_body(r, HTTPD_BODY_FILE, part);
 		httpd_set_tag(r, TAG_UPDATE);
 		hare_update_state("receiving", NULL);
-		note("receiving TortOS %s", offer.version);
+		note("receiving ReTort %s", offer.version);
 		return;
 	}
 
@@ -625,7 +629,7 @@ static void route_update(httpd_req *r, bool done)
 		return;
 	}
 	hare_update_state("checking", NULL);
-	note("checking TortOS %s", offer.version);
+	note("checking ReTort %s", offer.version);
 	if (g_up_received) g_up_received(&offer);
 	httpd_reply(r, 200, "text/plain", "ok", 2, NULL);
 }

@@ -186,9 +186,9 @@ static void tortos_menu_offline(void)
 	u.clock = "Oct 3, 6:12 AM";
 	n = sys_menu_build(&u, rows, &b, &heading);
 
-	printf("TortOS menu, radio off:\n");
+	printf("ReTort menu, radio off:\n");
 	ck(n == PM_ROWS, "every row is filled");
-	ck(!strcmp(heading, "TortOS"), "heading");
+	ck(!strcmp(heading, "ReTort"), "heading");
 	ck(!strcmp(val(&rows[PM_WIFI]), "off"), "Wi-Fi reads off");
 	ck(!strcmp(val(&rows[PM_XFER]), "needs Wi-Fi"), "OTH says why it is dead");
 	ck(!rows[PM_XFER].live, "OTH is not selectable offline");
@@ -707,10 +707,10 @@ static void radio_less(void)
 	ck(!has_label(rows, n, "Cheevos") && !has_label(rows, n, "ScreenScraper"),
 	   "and no sign-ins");
 	ck(has_label(rows, n, "Audio Output") && has_label(rows, n, "Play Time") &&
-	   has_label(rows, n, "Controls") && has_label(rows, n, "About TortOS") &&
+	   has_label(rows, n, "Controls") && has_label(rows, n, "About ReTort") &&
 	   has_label(rows, n, "Date & Time"),
 	   "the rest is all there, Date & Time with it");
-	ck(pm[n - 1] == PM_ABOUT && !strcmp(rows[n - 1].label, "About TortOS") &&
+	ck(pm[n - 1] == PM_ABOUT && !strcmp(rows[n - 1].label, "About ReTort") &&
 	   pm[0] == PM_STATS && !strcmp(rows[0].label, "Play Time"),
 	   "and the list names the rows the build drew, first to last");
 

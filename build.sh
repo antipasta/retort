@@ -12,6 +12,7 @@ usage() {
     echo "  diatom   - Build diatom (ARM64 Brick with shader support)"
     echo "  check    - Run all native host unit test suites (make check)"
     echo "  install  - Install staged binaries to SD card (auto-detects /Volumes/TORTOS)"
+    echo "  splash   - Update boot splash partition on SD card from laptop"
     echo ""
 }
 
@@ -33,6 +34,9 @@ case "$TARGET" in
     install)
         shift || true
         "$ROOT/scripts/install-sd.sh" "$@"
+        ;;
+    splash)
+        "$ROOT/scripts/update-boot-splash-sd.sh"
         ;;
     help|-h|--help)
         usage

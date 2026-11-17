@@ -5611,7 +5611,7 @@ static bool pack_logs(char *path, size_t pn, char *name, size_t nn)
 		int k_ = snprintf(about + at, sizeof about - at, __VA_ARGS__); \
 		if (k_ > 0 && (size_t)k_ < sizeof about - at) at += (size_t)k_; \
 	} while (0)
-	ABOUT("TortOS %s\n", TORTOS_VERSION);
+	ABOUT("ReTort %s\n", TORTOS_VERSION);
 	ABOUT("Packed %s, up %.0f minutes\n", stamp, up / 60);
 	if (statvfs(P_CARD, &vf) == 0)
 		ABOUT("Card: %.1f GB free of %.1f GB\n",
@@ -6218,7 +6218,7 @@ static void welcome_draw(app *a)
 	int      kind[12];
 	int      n = welcome_rows(rows, kind);
 
-	menu_draw(a, "Welcome to TortOS", rows, n, welcome_cursor(rows, n),
+	menu_draw(a, "Welcome to ReTort", rows, n, welcome_cursor(rows, n),
 	          menu_std_width(a), MENU_ACCENT);
 }
 
@@ -7311,7 +7311,7 @@ static void upbg_toast(app *a)
 
 	g_upbg_toasted = 1;
 	if ((f = fopen(UPBG_TOAST_MARK, "w"))) fclose(f);
-	snprintf(body, sizeof body, "TortOS %s", g_up_rel.version);
+	snprintf(body, sizeof body, "ReTort %s", g_up_rel.version);
 	if (!(px = notice_pixels("Update available", body, &w, &h))) return;
 	toast_end();
 	g_toast = SDL_CreateTexture(a->r, SDL_PIXELFORMAT_ARGB8888,
@@ -7323,7 +7323,7 @@ static void upbg_toast(app *a)
 		g_toast_h = h;
 		g_toast_until = plat_now_ms() + TOAST_MS;
 		redraw_now();
-		fprintf(stderr, "update: toast for TortOS %s\n", g_up_rel.version);
+		fprintf(stderr, "update: toast for ReTort %s\n", g_up_rel.version);
 	}
 	free(px);
 }
@@ -7784,7 +7784,7 @@ static void update_after_start(app *a)
 
 		if (res == UPDATE_RESULT_DONE) {
 			heading = "Updated";
-			snprintf(now, sizeof now, "TortOS is now %s", detail);
+			snprintf(now, sizeof now, "ReTort is now %s", detail);
 			rows[n++] = MENU_NOTE(now);
 		} else if (res == UPDATE_RESULT_UNTOUCHED) {
 			rows[n++] = MENU_NOTE("Nothing was changed.");
@@ -7792,7 +7792,7 @@ static void update_after_start(app *a)
 		} else {
 			rows[n++] = MENU_NOTE("It stopped while writing.");
 			rows[n++] = MENU_NOTE("If anything seems wrong,");
-			rows[n++] = MENU_NOTE("use TortOS Installer's Update.");
+			rows[n++] = MENU_NOTE("use ReTort Installer's Update.");
 		}
 		rows[n++] = MENU_RULE;
 		rows[n++] = MENU_NOTE("A: OK");
@@ -7865,7 +7865,7 @@ static void about_screen(app *a)
 		SDL_SetRenderDrawBlendMode(a->r, SDL_BLENDMODE_BLEND);
 		SDL_SetRenderDrawColor(a->r, 0, 0, 0, 120);
 		SDL_RenderFillRect(a->r, NULL);
-		menu_draw(a, "About TortOS", rows, 4, -1, menu_std_width(a), MENU_ACCENT);
+		menu_draw(a, "About ReTort", rows, 4, -1, menu_std_width(a), MENU_ACCENT);
 		plat_draw_osd(a->r);
 		plat_present();
 		SDL_Delay(8);
@@ -12690,7 +12690,7 @@ static void updater_art(app *a, const char *dir)
 	};
 	const menu_row failed[] = {
 		MENU_NOTE("It stopped while writing."),
-		MENU_NOTE("Use TortOS Installer's Update;"),
+		MENU_NOTE("Use ReTort Installer's Update;"),
 		MENU_NOTE("games and saves are safe."),
 		MENU_RULE,
 		MENU_NOTE("Power button: turn off"),

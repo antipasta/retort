@@ -160,7 +160,7 @@ int sys_menu_build(const sys_ui *u, menu_row *out, menu_bufs *b,
 
 	menu_row full[PM_ROWS];
 
-	*heading = "TortOS";
+	*heading = "ReTort";
 	/* The network's name, not its address. A settings row should say what the
 	 * setting IS; the address is a fact about the machine and lives on the
 	 * About page with the other ones. */
@@ -241,7 +241,7 @@ int sys_menu_build(const sys_ui *u, menu_row *out, menu_bufs *b,
 	full[PM_UPDATE]       = (menu_row){ "System Update",
 	                                   u->update_value ? u->update_value : NEEDS_WIFI(net),
 	                                   true };
-	full[PM_ABOUT]        = (menu_row){ "About TortOS", NULL,   true  };
+	full[PM_ABOUT]        = (menu_row){ "About ReTort", NULL,   true  };
 	{
 		pm_row ids[PM_ROWS];
 		int k, n = sys_menu_tortos_rows(u, ids);

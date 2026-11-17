@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="res/readme/wordmark.png" alt="TortOS" height="72">
+  <img src="res/readme/wordmark.png" alt="ReTort" height="72">
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="res/readme/turtle.png" alt="" height="84">
 </p>
+
+<h1 align="center">ReTort</h1>
 
 <p align="center">
   <b>A <ins>fast</ins>, focused custom firmware for the TrimUI Brick, Brick Hammer and GKD Pixel 2.</b><br>
@@ -13,7 +15,8 @@
   <a href="#install">Install</a> &nbsp;·&nbsp;
   <a href="#supported-systems">Systems</a> &nbsp;·&nbsp;
   <a href="#controls">Controls</a> &nbsp;·&nbsp;
-  <a href="#faq">FAQ</a>
+  <a href="#faq">FAQ</a> &nbsp;·&nbsp;
+  <a href="#credits--acknowledgements">Credits</a>
 </p>
 
 <div align="center">
@@ -43,7 +46,7 @@ https://github.com/user-attachments/assets/09b52bf2-bdb6-4a93-8613-27059d825ebf
 
 </div>
 
-## Why TortOS
+## Why ReTort
 
 **Games start the moment you press A.** The emulator is already running before you choose anything, so nothing loads between you and the game, even when you switch consoles.
 
@@ -51,7 +54,7 @@ https://github.com/user-attachments/assets/09b52bf2-bdb6-4a93-8613-27059d825ebf
 
 **Everything happens on the handheld.** Join Wi-Fi, fetch box art, sign in to RetroAchievements, pair headphones and send games over from your phone, all on the Brick. You need a computer once, to set up the card.
 
-**Your Brick stays yours.** TortOS runs from the SD card and changes nothing on the Brick itself. Take the card out and the Brick boots its own system again.
+**Your Brick stays yours.** ReTort runs from the SD card and changes nothing on the Brick itself. Take the card out and the Brick boots its own system again.
 
 ## Features
 
@@ -145,11 +148,11 @@ The same thing over a cable, with no Wi-Fi, called Down To The Wire. It works wi
 3. Open that address in a browser on that computer, `http://10.55.0.2` on the Brick or `http://10.42.0.1` on the Pixel 2, and type the PIN.
 4. Drag games into their console's folder, albums into `Music` or books into `Audiobooks`. They're on the shelf when you leave the screen.
 
-### Removing TortOS
+### Removing ReTort
 
 Take the card out. The Brick boots its own system again, as it was. On the Pixel 2 the card is the system, so another card with another system replaces it.
 
-Everything TortOS keeps is on the card, Wi-Fi passwords and Bluetooth pairings included, so reformat it before you give it away.
+Everything ReTort keeps is on the card, Wi-Fi passwords and Bluetooth pairings included, so reformat it before you give it away.
 
 ## Controls
 
@@ -232,15 +235,21 @@ Open **MENU > Over The Hare** (**Down To The Wire** over the USB cable), open it
 
 </details>
 
+## Credits & Acknowledgements
+
+**ReTort** is a fork of [TortOS](https://github.com/ericreinsmidt/TortOS), originally conceived, architected, and built by **Eric Reinsmidt**.
+
+We express our sincere gratitude to Eric for creating TortOS's elegant design, lightning-fast boot flow, clean and responsive SDL2 interface, and the companion [diatom](https://github.com/ericreinsmidt/diatom) libretro frontend. ReTort builds upon this fantastic foundation. All upstream work, original designs, and copyrights remain fully recognized and credited.
+
 ## For developers
 
-TortOS is C and SDL2. Games run in [diatom](https://github.com/ericreinsmidt/diatom), a small libretro frontend built for this device that starts once at boot and stays running.
+ReTort is C and SDL2. Games run in [diatom](https://github.com/ericreinsmidt/diatom), a small libretro frontend built for this device that starts once at boot and stays running.
 
 - [Building](docs/building.md): the toolchain, the card, the checks, and deploying to a device
 
 ## License
 
-TortOS is free software under the GNU General Public License, version 3 or any later version ([LICENSE](LICENSE)): anyone may change it, share it and sell it, and whoever gets it, changed or not, gets its source and the same rights. Releases up to v1.6.0 were MIT, and stay so. Diatom, the emulator it runs games in, is under the Mozilla Public License 2.0. The cores keep their own licenses, two of them non-commercial. Full notices are in [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
+ReTort is free software under the GNU General Public License, version 3 or any later version ([LICENSE](LICENSE)): anyone may change it, share it and sell it, and whoever gets it, changed or not, gets its source and the same rights. Releases up to v1.6.0 were MIT, and stay so. Diatom, the emulator it runs games in, is under the Mozilla Public License 2.0. The cores keep their own licenses, two of them non-commercial. Full notices are in [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 
 <p align="center">
   <a href="https://github.com/ericreinsmidt/TortOS/releases"><img src="https://img.shields.io/github/downloads/ericreinsmidt/TortOS/total?color=80B076" alt="Downloads"></a>

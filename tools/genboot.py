@@ -135,16 +135,28 @@ def fly_word(font_big):
     k = SCALE * FLY_WORD_SCALE
     cy = FLY_WORD_CY * H
 
-    def wx(x): return (W / 2.0 + (x - INK_R / 2.0) * k) * SS
-    def wy(y): return (cy + (y - (BASELINE - TCAP / 2.0)) * k) * SS
+    re_w = font_big.getlength("Re")
+    t_w = (T_ADV * K + TUCK) * k * SS
+    ort_w = font_big.getlength("ort")
+    total_w = re_w + t_w + ort_w
+    start_x = (W * SS - total_w) / 2.0
 
-    L = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0)); ld = ImageDraw.Draw(L)
-    ld.polygon([(wx(px_ * K), wy(BASELINE - py_ * K)) for px_, py_ in T_PTS],
-               fill=LTGRN + (255,))
-    ox = T_ADV * K + TUCK
-    ld.text((wx(ox), wy(BASELINE)), "ort", font=font_big, fill=LTGRN + (255,), anchor="ls")
-    tw = ld.textlength("ort", font=font_big)
-    ld.text((wx(ox) + tw, wy(BASELINE)), "OS", font=font_big, fill=CYAN + (255,), anchor="ls")
+    wy_base = (cy + (BASELINE - (BASELINE - TCAP / 2.0)) * k) * SS
+
+    L = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(L)
+
+    # "Re" in CYAN, "Tort" in LTGRN with custom T polygon
+    ld.text((start_x, wy_base), "Re", font=font_big, fill=CYAN + (255,), anchor="ls")
+
+    tx0 = start_x + re_w
+    t_poly = [(tx0 + px_ * K * k * SS,
+               (cy + (BASELINE - py_ * K - (BASELINE - TCAP / 2.0)) * k) * SS)
+              for px_, py_ in T_PTS]
+    ld.polygon(t_poly, fill=LTGRN + (255,))
+
+    ort_x = tx0 + t_w
+    ld.text((ort_x, wy_base), "ort", font=font_big, fill=LTGRN + (255,), anchor="ls")
     return L
 
 
