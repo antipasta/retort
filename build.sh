@@ -13,6 +13,7 @@ usage() {
     echo "  check    - Run all native host unit test suites (make check)"
     echo "  install  - Install staged binaries to SD card (auto-detects /Volumes/TORTOS)"
     echo "  splash   - Update boot splash partition on SD card from laptop"
+    echo "  cores    - Fetch and verify all libretro cores (stock + extended)"
     echo ""
 }
 
@@ -37,6 +38,10 @@ case "$TARGET" in
         ;;
     splash)
         "$ROOT/scripts/update-boot-splash-sd.sh"
+        ;;
+    cores)
+        "$ROOT/mk/fetch-vendor.sh"
+        "$ROOT/mk/fetch-vendor-extended.sh"
         ;;
     help|-h|--help)
         usage

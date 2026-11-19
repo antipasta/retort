@@ -41,5 +41,11 @@ if [ -d "$ROOT/res/shaders" ]; then
     echo "    [+] Installed shaders"
 fi
 
+if [ -d "$STAGE/cores" ]; then
+    mkdir -p "$SD_TORTOS/cores"
+    cp -n "$STAGE/cores/"*.so "$SD_TORTOS/cores/" 2>/dev/null || true
+    echo "    [+] Verified cores in $SD_TORTOS/cores"
+fi
+
 sync
 echo "==> Done! Safely eject your SD card."

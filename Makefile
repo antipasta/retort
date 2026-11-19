@@ -288,6 +288,13 @@ native:
 vendor:
 	./mk/fetch-vendor.sh
 
+# The extended libretro cores ReTort supports (Neo Geo FBNeo and PlayStation PCSX-ReARMed)
+vendor-extended:
+	./mk/fetch-vendor-extended.sh
+
+# Fetch both stock and extended cores
+vendor-all: vendor vendor-extended
+
 # Assets in res/ are committed ready to ship; nothing needs generating to build.
 #
 # The boot animation still has a generator. The system cards no longer do: they
