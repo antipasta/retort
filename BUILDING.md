@@ -1,62 +1,88 @@
-Here are the build instructions for cross-compiling the binaries for your TrimUI Brick (running Plastron Linux) using Docker.
+# Building ReTort / TortOS
+
+Instructions for building ReTort and Diatom for the TrimUI Brick (Plastron Linux).
 
 ---
 
-### 1. Build the TortOS Launcher (`tortos.elf`)
+## 1. Quick Build (Using `build.sh`)
 
-Run this from the `/Users/joe/misc/TortOS` repository:
+The repository includes a master build automation script [build.sh](build.sh) that orchestrates Docker cross-compilation and SD card deployment:
 
 ```sh
-cd /Users/joe/misc/TortOS
+# Run all native unit tests
+./build.sh check
 
+# Fetch and verify all libretro cores (stock + extended)
+./build.sh cores
+
+# Cross-compile both tortos.elf and diatom for TrimUI Brick (ARM64)
+./build.sh all
+
+# Install staged binaries and shaders to microSD card (auto-detects /Volumes/TORTOS)
+./build.sh install
+
+# Update the boot splash animation on the SD card (Plastron OS partition)
+./build.sh splash
+```
+
+---
+
+## 2. Manual Cross-Compilation via Docker
+
+If you prefer to invoke the cross-compiler directly:
+
+### Build the Launcher (`tortos.elf`)
+
+Run from the root of the repository:
+
+```sh
 docker run --rm -v $(pwd):/build -w /build debian:bookworm-slim sh -c \
   "apt-get update && apt-get install -y --no-install-recommends \
    build-essential libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsqlite3-dev \
    libasound2-dev zlib1g-dev pkg-config && \
    make -f mk/cross.mk CC=gcc SYSROOT='' BUILD=build-brick DEVICE=brick VERSION=2.2.1 build-brick/tortos.elf"
 ```
-*Output binary will be located at: `build-brick/tortos.elf`.*
+*Output binary: `build-brick/tortos.elf`.*
 
 ---
 
-### 2. Build the Diatom Emulator Engine (`diatom`)
+### Build the Emulator Engine (`diatom`)
 
-If you also need to recompile `diatom` for the TrimUI Brick:
+From the companion `diatom` repository:
 
 ```sh
-cd /Users/joe/misc/diatom
+cd ../diatom
 
 docker run --rm -v $(pwd):/build -w /build debian:bookworm-slim sh -c \
   "apt-get update && apt-get install -y --no-install-recommends \
    build-essential libsdl2-dev zlib1g-dev pkg-config && \
    make PORT=brick"
 ```
-*Output binary will be located at: `build/brick/diatom`.*
+*Output binary: `build/brick/diatom`.*
 
 ---
 
-### 3. Deploy to the SD Card (`/Volumes/TORTOS`)
+## 3. Manual Deployment to MicroSD Card (`/Volumes/TORTOS`)
 
 Once compiled, copy the binaries and shaders to your SD card:
 
 ```sh
 # 1. Copy the updated launcher
-cp /Users/joe/misc/TortOS/build-brick/tortos.elf /Volumes/TORTOS/TortOS/tortos.elf
+cp build-brick/tortos.elf /Volumes/TORTOS/TortOS/tortos.elf
 
 # 2. Copy the updated diatom engine
-cp /Users/joe/misc/diatom/build/brick/diatom /Volumes/TORTOS/TortOS/diatom
+cp ../diatom/build/brick/diatom /Volumes/TORTOS/TortOS/diatom
 
 # 3. Ensure the shaders directory is copied
-cp -r /Users/joe/misc/TortOS/res/shaders /Volumes/TORTOS/TortOS/
+cp -r res/shaders /Volumes/TORTOS/TortOS/
 ```
 
 ---
 
-### Optional: Run Native Tests Locally
+## 4. Run Native Tests Locally
 
-To verify all launcher logic, menus, and shader parsers pass locally before deploying:
+To verify all launcher logic, menus, and shader parsers pass locally on your host machine:
 
 ```sh
-cd /Users/joe/misc/TortOS
 make check
 ```

@@ -41,11 +41,11 @@ flowchart TD
 ```
 
 ### Component Responsibilities
-- **TortOS (`/Users/joe/misc/TortOS`)**:
+- **TortOS / ReTort (`TortOS/`)**:
   - Manages the shelf UI, box art, system menus, Wi-Fi, and RetroAchievements.
   - Owns persistent state in the database (`db.c`): screen display modes, volume/brightness levels, and system-specific core options (`coreopt.<tag>.<key>`).
   - Launches games by issuing `RUN` messages to Diatom over a resident Unix domain socket.
-- **Diatom (`/Users/joe/misc/diatom`)**:
+- **Diatom (`diatom/`)**:
   - Minimalist, high-performance Libretro frontend written in C for low-power ARM Linux handhelds (TrimUI Brick, GKD Pixel 2).
   - Handles frame pacing, audio resampling, physical button polling, and core lifecycle.
   - Keeps cores resident in memory to avoid cold startup overhead between launches.
@@ -214,57 +214,70 @@ sys|PlayStation|PlayStation|pcsx_rearmed|PS|PS.png|6A96DE|chd,cue,m3u,pbp,iso,im
 
 | Repository | Branch | Key Commits | Description |
 |:---|:---|:---|:---|
-| `/Users/joe/misc/TortOS` | `feature/shaders` | `e457d59` | GLSL shader support, menus, & resident IPC |
-| `/Users/joe/misc/diatom` | `feature/shaders` | `05280d8` | GLSL shader pipeline & dual-mode Brick rendering (ADR-0041, 0043) |
-| `/Users/joe/misc/TortOS` | `feature/neogeo-fbneo` | `1ab5298` | Neo Geo shelf config, card art, AES mode default |
-| `/Users/joe/misc/TortOS` | `feature/neogeo-fbneo` | `4af653a` | PlayStation shelf config, scraper entries, and card art |
-| `/Users/joe/misc/diatom` | `feature/fbneo-block-extract` | `4483620` | FBNeo block ROM loading support |
-| `/Users/joe/misc/diatom` | `feature/gb-palette-cycling` | `cb7aa01` | Game Boy live L1/R1 palette switching |
+| `TortOS` | `feature/shaders` | `e457d59` | GLSL shader support, menus, & resident IPC |
+| `diatom` | `feature/shaders` | `05280d8` | GLSL shader pipeline & dual-mode Brick rendering (ADR-0041, 0043) |
+| `TortOS` | `feature/neogeo-fbneo` | `1ab5298` | Neo Geo shelf config, card art, AES mode default |
+| `TortOS` | `feature/neogeo-fbneo` | `4af653a` | PlayStation shelf config, scraper entries, and card art |
+| `diatom` | `feature/fbneo-block-extract` | `4483620` | FBNeo block ROM loading support |
+| `diatom` | `feature/gb-palette-cycling` | `cb7aa01` | Game Boy live L1/R1 palette switching |
 
 ---
 
 ## 6. Build & Deployment Instructions
 
-### A. Testing TortOS Offline Checks
+Using the master build script [build.sh](build.sh):
+
 ```sh
-cd /Users/joe/misc/TortOS
+# Run all unit tests
+./build.sh check
+
+# Cross-compile both tortos.elf and diatom for TrimUI Brick (ARM64)
+./build.sh all
+
+# Install to mounted microSD card (auto-detects /Volumes/TORTOS)
+./build.sh install
+```
+
+### Manual Build Commands
+
+#### A. Testing TortOS Offline Checks
+```sh
 make check
 ```
 
-### B. Testing Diatom
+#### B. Testing Diatom
 ```sh
-cd /Users/joe/misc/diatom
+cd ../diatom
 make check
 ```
 
-### C. Cross-Compiling Diatom for TrimUI Brick (`aarch64`)
+#### C. Cross-Compiling Diatom for TrimUI Brick (`aarch64`)
 ```sh
-cd /Users/joe/misc/diatom
+cd ../diatom
 docker run --rm -v $(pwd):/build -w /build debian:bookworm-slim sh -c \
   "apt-get update && apt-get install -y --no-install-recommends build-essential libsdl2-dev zlib1g-dev pkg-config && make PORT=brick"
 ```
 The compiled ARM64 binary outputs to `build/brick/diatom`.
 
-### D. Cross-Compiling TortOS Launcher (`tortos.elf`) for Plastron Linux
+#### D. Cross-Compiling TortOS Launcher (`tortos.elf`) for Plastron Linux
 > [!IMPORTANT]
 > **Do not use pre-built `tortos.elf` from plorpOS!**
 > `plorpOS` builds target stock TrimUI firmware, which hardcodes `/dev/input/event3` and relies on an external `inputd` daemon. On **Plastron Linux** (official TortOS OS), there is no `inputd`; the kernel exposes inputs directly as evdev nodes, and `src/device/brick.c` dynamically scans `/dev/input/event*` for `BTN_SOUTH`. Running a plorpOS ELF on Plastron Linux causes `no gamepad found` and unresponsive controls.
 
 To compile `tortos.elf` with the native Plastron Linux input driver:
 ```sh
-cd /Users/joe/misc/TortOS
 docker run --rm -v $(pwd):/build -w /build debian:bookworm-slim sh -c \
   "apt-get update && apt-get install -y --no-install-recommends build-essential libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev libsqlite3-dev libasound2-dev zlib1g-dev pkg-config && make -f mk/cross.mk CC=gcc SYSROOT='' BUILD=build-brick DEVICE=brick VERSION=2.2.0 build-brick/tortos.elf"
 ```
 The compiled ARM64 binary outputs to `build-brick/tortos.elf`.
 
-### E. Deploying to SD Card
+#### E. Deploying to SD Card
 ```sh
 # Copy compiled diatom binary to SD card
-cp /Users/joe/misc/diatom/build/brick/diatom /Volumes/<SD_CARD>/TortOS/diatom
+cp ../diatom/build/brick/diatom /Volumes/<SD_CARD>/TortOS/diatom
 
 # Copy TortOS update bundle if updating full system
-cp -r /Users/joe/misc/TortOS/out/brick-neogeo-update/TortOS/* /Volumes/<SD_CARD>/TortOS/
+cp -r out/brick-neogeo-update/TortOS/* /Volumes/<SD_CARD>/TortOS/
 
 # Create PlayStation ROM folder on SD card
 mkdir -p /Volumes/<SD_CARD>/Roms/PlayStation
