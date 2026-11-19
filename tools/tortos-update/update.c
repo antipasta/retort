@@ -265,14 +265,15 @@ static bool read_request(request *r, char *why, size_t whyn)
  * it, and nothing that could reach outside .update/ */
 static bool request_fits(const request *r, char *why, size_t whyn)
 {
-	char want[128];
+	char want[128], want_tortos[128];
 
 	if (strcmp(r->device, DEVICE) != 0) {
 		snprintf(why, whyn, "the request is for a %s, this is a %s", r->device, DEVICE);
 		return false;
 	}
-	snprintf(want, sizeof want, "TortOS-v%s-%s.img.xz", r->version, DEVICE);
-	if (strcmp(r->file, want) != 0 || strchr(r->version, '/')) {
+	snprintf(want, sizeof want, "Retort-v%s-%s.img.xz", r->version, DEVICE);
+	snprintf(want_tortos, sizeof want_tortos, "TortOS-v%s-%s.img.xz", r->version, DEVICE);
+	if ((strcmp(r->file, want) != 0 && strcmp(r->file, want_tortos) != 0) || strchr(r->version, '/')) {
 		snprintf(why, whyn, "the request names %s, not %s", r->file, want);
 		return false;
 	}
@@ -424,7 +425,10 @@ static void update(void)
 	}
 	unlink(path);
 	unlink(REQUEST);
-	snprintf(result, sizeof result, "updated to TortOS %s", r.version);
+	{
+		const char *os = strncmp(r.file, "Retort-", 7) == 0 ? "Retort" : "TortOS";
+		snprintf(result, sizeof result, "updated to %s %s", os, r.version);
+	}
 	finish(result, RB_AUTOBOOT);
 
 untouched:

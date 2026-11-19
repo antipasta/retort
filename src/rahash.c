@@ -263,6 +263,18 @@ bool ra_hash_rom(const char *path, const char *tag, char *out)
 	if (!path || !tag || !out) return false;
 	out[0] = '\0';
 
+	/* Arcade sets are hashed by their NAME, not their contents: the MD5 of
+	 * the file name without its extension, "mslug" for mslug.zip - the core
+	 * insists on the right ROMs, so the name is enough (rhash's
+	 * rc_hash_arcade). */
+	if (!strcmp(tag, "ARCADE") || !strcmp(tag, "NEOGEO")) {
+		const char *name = strrchr(path, '/') ? strrchr(path, '/') + 1 : path;
+		const char *dot = strrchr(name, '.');
+
+		ra_md5_hex(name, dot ? (size_t)(dot - name) : strlen(name), out);
+		return true;
+	}
+
 	if (is_zip(path)) {
 		data = zip_largest(path, &len);
 		if (!data) return false;

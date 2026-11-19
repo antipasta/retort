@@ -122,6 +122,7 @@ bool plat_resident_await(unsigned max_ms, unsigned *waited_ms);
  * Eight positional arguments, five of them paths, is one past comfortable -
  * the call already passes the same state path twice in a row. A struct is the
  * next change to this function, not a further parameter. */
+void plat_resident_set_shader(const char *shader);
 bool plat_resident_send(const char *tag, const char *core, const char *rom,
                         const char *resume, const char *exit_state,
                         const char *preview,

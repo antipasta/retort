@@ -63,7 +63,9 @@ static void cfg_quote(FILE *f, const char *v)
  * does not; the project's address is that way, and nobody's email is. The
  * other services are sent the same line, since one client should say one
  * thing about itself. */
-#define NET_UA "TortOS/" TORTOS_VERSION " ( https://github.com/ericreinsmidt/TortOS )"
+#ifndef NET_UA
+#define NET_UA "Retort/" TORTOS_VERSION " ( https://github.com/antipasta/retort )"
+#endif
 
 static bool write_get_config(const char *path, const char *url,
                             const char *body_path, int timeout_s)

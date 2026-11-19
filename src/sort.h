@@ -71,9 +71,7 @@ static inline bool sort_needs_stats(int order)
 
 static int sort_by_name(const void *pa, const void *pb)
 {
-	const game_entry *a = pa, *b = pb;
-
-	return strcasecmp(a->name, b->name);
+	return lib_order(pa, pb);
 }
 
 /* The three numeric orders, all shaped the same: bigger first, name breaks a

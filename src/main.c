@@ -19,6 +19,7 @@
 #include "btvol.h"
 #include "bt_menu.h"
 #include "db.h"
+#include "shaderlist.h"
 #include "stats.h"
 #include "sort.h"
 #include "coverflow.h"
@@ -52,6 +53,7 @@
 #include "ui.h"
 #include "wifi_menu.h"
 #include "update.h"
+#include "titles.h"
 #include "../tools/tortos-update/sha256.h"
 
 #include <SDL.h>
@@ -102,6 +104,7 @@ typedef struct {
 	 * whatever sits at index 0 is what an untouched card plays at - see the
 	 * note on DMODES itself. */
 	int dmode;
+	int shader;
 	/* Index into SORTS. Zero is by name, which is what every shelf was
 	 * before this existed and what an untouched one still is. On Muse's
 	 * shelf an ml_order instead, whose zero is by artist. */
@@ -151,6 +154,7 @@ static const struct { const char *name, *label; } DMODES[] = {
 
 typedef struct {
 	systems_cfg sys;
+	sl_list shaders;
 
 	SDL_Texture *sys_tex[CFG_MAX_SYSTEMS];
 	int sys_w[CFG_MAX_SYSTEMS], sys_h[CFG_MAX_SYSTEMS];
@@ -285,6 +289,12 @@ static void display_save(app *a)
 		db_set_str(db_dev(), key, DMODES[a->view[i].dmode].name);
 	}
 }
+
+static void shader_load(app *a);
+static void shader_save(app *a, int sys);
+static const char *shader_fields(app *a, int i, char *f, size_t cap);
+static int game_shader(app *a, int sys, const game_entry *g);
+static void shelf_shader_screen(app *a, int sys);
 
 /* ---------- per-system sort order ----------------------------------------- */
 
@@ -888,6 +898,16 @@ static int shelf_owner(app *a, int sysidx, int item)
  * every system reads stretch and all the answers agree. Named as a function
  * rather than repeated at each site so the next per-system setting has one
  * obvious thing to call. */
+/* The game under the cursor - the one playing, while an in-game menu is up -
+ * and in *sys the system it belongs to, whose defaults it falls back to. */
+static const game_entry *playing(app *a, int *sys)
+{
+	sysview *v = &a->view[a->sys_cursor];
+
+	*sys = shelf_owner(a, a->sys_cursor, v->cursor);
+	return (v->cursor >= 0 && v->cursor < v->list.count) ? &v->list.items[v->cursor] : NULL;
+}
+
 static sysview *owner_view(app *a)
 {
 	sysview *v = &a->view[a->sys_cursor];
@@ -4830,7 +4850,9 @@ static int menu_build(app *a, screen_id screen, int sys,
 		u.muse       = is_muse(sc);
 		u.fav        = !u.muse && sc->core[0] == '\0' && sc->folder[0] == '\0';
 		u.game_count = a->view[sys].list.count;
-		u.dmode      = DMODES[a->view[sys].dmode].label;
+		u.dmode       = DMODES[a->view[sys].dmode].label;
+		u.shader      = a->shaders.e[a->view[sys].shader].name;
+		u.shader_live = a->shaders.count > 1;
 		u.muse_books = u.muse && muse_books_shown();
 		u.muse_both  = u.muse && ml_count(&g_muse, true) && ml_count(&g_muse, false);
 		u.muse_playing = u.muse && lock_allowed();
@@ -5048,6 +5070,9 @@ typedef struct {
 	 * going anywhere, and the wait loop below it has to be told, or it goes
 	 * straight back to waiting on a game nobody is running. */
 	menu_result (*on_power)(app *a, void *ctx);
+	/* The row the cursor starts on: 0, the top, unless a list opens on the
+	 * entry already chosen (the in-game Shader list). */
+	int      start;
 } menu_style;
 
 /* SELECT: Muse, over whatever is on screen. Declared here, after menu_style,
@@ -5072,7 +5097,7 @@ static menu_exit menu_run_body(app *a, const menu_style *st,
 {
 	menu_row rows[MENU_RUN_ROWS];
 	const char *heading = NULL;
-	int sel = 0, n = 0, b;
+	int sel = st->start, n = 0, b;
 
 	while (a->running && !want_quit) {
 		n = build(ctx, rows, MENU_RUN_ROWS, &heading);
@@ -5586,7 +5611,7 @@ static bool pack_logs(char *path, size_t pn, char *name, size_t nn)
 		int k_ = snprintf(about + at, sizeof about - at, __VA_ARGS__); \
 		if (k_ > 0 && (size_t)k_ < sizeof about - at) at += (size_t)k_; \
 	} while (0)
-	ABOUT("TortOS %s\n", TORTOS_VERSION);
+	ABOUT("ReTort %s\n", TORTOS_VERSION);
 	ABOUT("Packed %s, up %.0f minutes\n", stamp, up / 60);
 	if (statvfs(P_CARD, &vf) == 0)
 		ABOUT("Card: %.1f GB free of %.1f GB\n",
@@ -6193,7 +6218,7 @@ static void welcome_draw(app *a)
 	int      kind[12];
 	int      n = welcome_rows(rows, kind);
 
-	menu_draw(a, "Welcome to TortOS", rows, n, welcome_cursor(rows, n),
+	menu_draw(a, "Welcome to ReTort", rows, n, welcome_cursor(rows, n),
 	          menu_std_width(a), MENU_ACCENT);
 }
 
@@ -6336,6 +6361,14 @@ static void gi_gather(app *a, int owner, const game_entry *g, game_info *gi)
  * difference between twenty images and a hundred and eighty. It is worth much
  * less afterwards: since the direct-name pass landed, a whole-library re-run
  * over a full card is nine directory sweeps and no network at all. */
+static const char *fbneo_dat(void)
+{
+	static char p[CFG_STR * 2];
+
+	if (!p[0]) snprintf(p, sizeof p, "%s/res/fbneo-titles.tsv", P_ROOT);
+	return p;
+}
+
 static void art_screen(app *a, const char *only, const char *one,
                        const char *stem, const char *one_file, unsigned accent)
 {
@@ -7278,7 +7311,7 @@ static void upbg_toast(app *a)
 
 	g_upbg_toasted = 1;
 	if ((f = fopen(UPBG_TOAST_MARK, "w"))) fclose(f);
-	snprintf(body, sizeof body, "TortOS %s", g_up_rel.version);
+	snprintf(body, sizeof body, "ReTort %s", g_up_rel.version);
 	if (!(px = notice_pixels("Update available", body, &w, &h))) return;
 	toast_end();
 	g_toast = SDL_CreateTexture(a->r, SDL_PIXELFORMAT_ARGB8888,
@@ -7290,7 +7323,7 @@ static void upbg_toast(app *a)
 		g_toast_h = h;
 		g_toast_until = plat_now_ms() + TOAST_MS;
 		redraw_now();
-		fprintf(stderr, "update: toast for TortOS %s\n", g_up_rel.version);
+		fprintf(stderr, "update: toast for ReTort %s\n", g_up_rel.version);
 	}
 	free(px);
 }
@@ -7751,7 +7784,7 @@ static void update_after_start(app *a)
 
 		if (res == UPDATE_RESULT_DONE) {
 			heading = "Updated";
-			snprintf(now, sizeof now, "TortOS is now %s", detail);
+			snprintf(now, sizeof now, "ReTort is now %s", detail);
 			rows[n++] = MENU_NOTE(now);
 		} else if (res == UPDATE_RESULT_UNTOUCHED) {
 			rows[n++] = MENU_NOTE("Nothing was changed.");
@@ -7759,7 +7792,7 @@ static void update_after_start(app *a)
 		} else {
 			rows[n++] = MENU_NOTE("It stopped while writing.");
 			rows[n++] = MENU_NOTE("If anything seems wrong,");
-			rows[n++] = MENU_NOTE("use TortOS Installer's Update.");
+			rows[n++] = MENU_NOTE("use ReTort Installer's Update.");
 		}
 		rows[n++] = MENU_RULE;
 		rows[n++] = MENU_NOTE("A: OK");
@@ -7832,7 +7865,7 @@ static void about_screen(app *a)
 		SDL_SetRenderDrawBlendMode(a->r, SDL_BLENDMODE_BLEND);
 		SDL_SetRenderDrawColor(a->r, 0, 0, 0, 120);
 		SDL_RenderFillRect(a->r, NULL);
-		menu_draw(a, "About TortOS", rows, 4, -1, menu_std_width(a), MENU_ACCENT);
+		menu_draw(a, "About ReTort", rows, 4, -1, menu_std_width(a), MENU_ACCENT);
 		plat_draw_osd(a->r);
 		plat_present();
 		SDL_Delay(8);
@@ -7986,6 +8019,13 @@ static int menu_shelf_width(app *a)
 			if (mw > w) w = mw;
 		}
 		if (!own) rows[SM_DISPLAY].value = DMODES[0].label;
+		for (k = 0; !own && k < a->shaders.count; k++) {
+			int mw;
+			rows[SM_SHADER].value = a->shaders.e[k].name;
+			mw = menu_measure(rows, n, heading);
+			if (mw > w) w = mw;
+		}
+		if (!own && a->shaders.count > 0) rows[SM_SHADER].value = a->shaders.e[0].name;
 		for (k = 0; k < (muse ? ML_ORDERS : SORT_COUNT); k++) {
 			int mw;
 			rows[srow].value = muse ? ml_order_label((ml_order)k, false) : SORTS[k].label;
@@ -8218,6 +8258,20 @@ static menu_result sysmenu_key(app *a, void *ctx, in_button key, int sel)
 
 			v->dmode = (v->dmode + d + DMODE_COUNT) % DMODE_COUNT;
 			display_save(a);
+			return MENU_STAY;
+		}
+		/* Shader: left and right step through the list, as
+		 * Display Mode does; A opens it, as the in-game row does. Saved for
+		 * the system, which is what a launch and the in-game row both read. */
+		if (sel == SM_SHADER && (d || key == IN_ACCEPT) && a->shaders.count > 1) {
+			sysview *v = &a->view[a->sys_cursor];
+
+			if (d) {
+				v->shader = (v->shader + d + a->shaders.count) % a->shaders.count;
+				shader_save(a, a->sys_cursor);
+			} else {
+				shelf_shader_screen(a, a->sys_cursor);
+			}
 			return MENU_STAY;
 		}
 		/* Sort order, on the same left/right idiom.
@@ -8722,13 +8776,17 @@ static void gm_cycle_display(app *a, int d)
 static int gm_build(app *a, menu_row *out, gm_bufs *b)
 {
 	gm_ui u;
+	int sys;
+	const game_entry *g = playing(a, &sys);
 
 	/* The owner's mode, as gm_cycle_display changes it: from Favorites the
 	 * shelf's own view is FAV's, which nobody sets, so the row read
 	 * "Stretch" whatever the game was playing at (TortOS#76) */
-	u.dmode  = DMODES[owner_view(a)->dmode].label;
-	u.earned = chv_earned();
-	u.total  = chv_count();
+	u.dmode   = DMODES[owner_view(a)->dmode].label;
+	u.shader  = a->shaders.count ? a->shaders.e[game_shader(a, sys, g)].name : "None";
+	u.shaders = a->shaders.count > 1;
+	u.earned  = chv_earned();
+	u.total   = chv_count();
 	return gm_rows(&u, out, b);
 }
 
@@ -10510,6 +10568,14 @@ static int gm_width(app *a)
 		mw = menu_measure(rows, GM_ROWS, NULL);
 		if (mw > w) w = mw;
 	}
+	/* And every shader name, for the same reason: picking one must not
+	 * resize the panel the player comes back to. */
+	for (k = 0; k < a->shaders.count && rows[GM_SHADER].live; k++) {
+		int mw;
+		rows[GM_SHADER].value = a->shaders.e[k].name;
+		mw = menu_measure(rows, GM_ROWS, NULL);
+		if (mw > w) w = mw;
+	}
 	return w;
 }
 
@@ -10561,6 +10627,8 @@ static menu_result gm_power(app *a, void *ctx)
 	plat_resident_line("STOP");
 	return MENU_DONE;
 }
+
+#include "shader_menu.inc"
 
 static menu_result gm_key(app *a, void *ctx, in_button key, int sel)
 {
@@ -10616,6 +10684,9 @@ static menu_result gm_key(app *a, void *ctx, in_button key, int sel)
 	 * was a row that looked broken. */
 	case GM_DISPLAY:
 		gm_cycle_display(a, +1);
+		break;
+	case GM_SHADER:
+		shader_screen(a, c);
 		break;
 	case GM_CHEEVOS:
 		cheevos_screen(a, c->bg, false);
@@ -10934,6 +11005,8 @@ static void launch(app *a)
 		 * the in-game menu, which is drawn HERE now, over the frame the
 		 * emulator hands us on the way into its pause. */
 		aout_before_launch();
+		char shf[1024];
+		plat_resident_set_shader(shader_fields(a, game_shader(a, o, &v->list.items[v->cursor]), shf, sizeof shf));
 		if (plat_resident_send(s->tag, core, rom, st, st, pv,
 		                       console, active[0] ? active : NULL)) {
 			int r;
@@ -12233,6 +12306,8 @@ static void scan_all(app *a)
 	for (int i = 0; i < a->sys.count; i++) {
 		sysview *v = &a->view[i];
 		lib_scan(P_ROMS, a->sys.systems[i].folder, a->sys.systems[i].exts, &v->list);
+		titles_apply(&v->list, a->sys.systems[i].folder,
+		             strcmp(a->sys.systems[i].core, "fbneo") ? NULL : fbneo_dat());
 		if (v->list.count > 0) {
 			v->tex = calloc((size_t)v->list.count, sizeof *v->tex);
 			v->tw = calloc((size_t)v->list.count, sizeof *v->tw);
@@ -12341,6 +12416,7 @@ static void rescan_all(app *a)
 
 	scan_all(a);
 	display_load(a);     /* indexes by tag, so it is safe to run again */
+	shader_load(a);
 	sort_load(a);
 	sort_all(a);
 
@@ -12614,7 +12690,7 @@ static void updater_art(app *a, const char *dir)
 	};
 	const menu_row failed[] = {
 		MENU_NOTE("It stopped while writing."),
-		MENU_NOTE("Use TortOS Installer's Update;"),
+		MENU_NOTE("Use ReTort Installer's Update;"),
 		MENU_NOTE("games and saves are safe."),
 		MENU_RULE,
 		MENU_NOTE("Power button: turn off"),
@@ -13173,6 +13249,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "scrape: %s, ScreenScraper %s\n",
 		        only_sys ? only_sys : "every shelf",
 		        ss_signed_in() ? "signed in" : "not signed in");
+		art_set_fbneo_dat(fbneo_dat());
 		art_begin(only_sys ? &one : &all, P_ROMS, NULL);
 		while ((r = art_step()) == 1) {
 			art_status(&st);
@@ -13260,6 +13337,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "no usable %s\n", path);
 		return 1;
 	}
+	art_set_fbneo_dat(fbneo_dat());
 
 	/* Before the scan, because the scan builds the Favorites shelf out of
 	 * them and a shelf cannot be built from a list that has not been read. */
@@ -13319,6 +13397,7 @@ int main(int argc, char *argv[])
 	/* After the scan, because it indexes by system, and before anything can
 	 * launch, because the mode has to reach Diatom with the first RUN. */
 	display_load(&a);
+	shader_load(&a);
 	sort_load(&a);
 	sort_all(&a);
 	t_mark("scan");

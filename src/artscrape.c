@@ -16,6 +16,7 @@
 #include "artscrape.h"
 #include "artshrink.h"
 #include "config.h"
+#include "fbneodat.h"
 #include "library.h"
 #include "net.h"
 #include "ss.h"
@@ -75,9 +76,16 @@
  * The second collection is only fetched if the first left something unmatched,
  * so a cartridge-only shelf costs exactly what it did before. */
 static const struct { const char *folder, *remote, *remote2; } MAP[] = {
+	/* Arcade art is filed by set under FBNeo's catalog; Neo Geo sets have their
+	 * own. Both are named by the full title, not the set name. */
+	{ "Arcade",           "FBNeo - Arcade Games", NULL },
+	/* FBNeo's catalog second: it files every Neo Geo set as well, under
+	 * FBNeo's own names, and the Neo Geo one has 257 covers to its 6,456. */
+	{ "Neo Geo",          "SNK - Neo Geo", "FBNeo - Arcade Games" },
 	{ "NES",              "Nintendo - Nintendo Entertainment System",
 	                      "Nintendo - Family Computer Disk System" },
 	{ "SNES",             "Nintendo - Super Nintendo Entertainment System", NULL },
+	{ "PlayStation",      "Sony - PlayStation", NULL },
 	{ "Game Boy",         "Nintendo - Game Boy", NULL },
 	{ "Game Boy Color",   "Nintendo - Game Boy Color", NULL },
 	{ "Game Boy Advance", "Nintendo - Game Boy Advance", NULL },
@@ -378,10 +386,11 @@ static int     g_nnames;      /* what the index held; for the message only */
 static char   *g_dat;
 static bool    g_crc_tried;
 
-typedef struct { char folder[CFG_STR]; char exts[CFG_STR]; } sysrow;
+typedef struct { char folder[CFG_STR]; char exts[CFG_STR]; bool fbneo; } sysrow;
 static sysrow  g_sys[CFG_MAX_SYSTEMS];
 static int     g_nsys;
 static char    g_romdir[LIB_PATH];
+static char    g_fbneo_dat[LIB_PATH];
 
 /* Where the step machine is. Split this way because a request must not be
  * waited for: these are called from a screen's frame loop, which is also
@@ -568,6 +577,24 @@ static bool ext_allowed(const char *name, const char *exts)
 	return false;
 }
 
+static bool dir_has_rom(const char *dirpath, const char *exts)
+{
+	DIR *sub = opendir(dirpath);
+	struct dirent *se;
+	bool found = false;
+
+	if (!sub) return false;
+	while ((se = readdir(sub))) {
+		if (se->d_name[0] == '.') continue;
+		if (ext_allowed(se->d_name, exts)) {
+			found = true;
+			break;
+		}
+	}
+	closedir(sub);
+	return found;
+}
+
 /* The ROM stems in one folder. `.media/` and any dotfile are not games, and
  * neither is a stray text file - which is what the extension list in
  * systems.cfg is for. Without it this reports missing art for things that
@@ -598,6 +625,28 @@ static void read_roms(const char *dir, const char *exts)
 			snprintf(g_rext[g_nroms], sizeof g_rext[0], "%s", dot);
 			*dot = '\0';
 		}
+		g_nroms++;
+	}
+
+	/* Pass 2: a subfolder holding disc images is a game too. */
+	rewinddir(d);
+	while ((e = readdir(d)) && g_nroms < ENTRIES_MAX) {
+		char full[ARTPATH_MAX];
+		struct stat st;
+		bool shadowed = false;
+
+		if (e->d_name[0] == '.') continue;
+		if (snprintf(full, sizeof full, "%s/%s", dir, e->d_name)
+		    >= (int)sizeof full) continue;
+		if (stat(full, &st) != 0 || !S_ISDIR(st.st_mode)) continue;
+		if (!dir_has_rom(full, exts)) continue;
+		for (int k = 0; k < g_nroms; k++) {
+			if (!strcasecmp(g_roms[k], e->d_name)) { shadowed = true; break; }
+		}
+		if (shadowed) continue;
+		if (snprintf(g_roms[g_nroms], NAME_MAX_, "%s", e->d_name)
+		    >= NAME_MAX_) continue;
+		g_rext[g_nroms][0] = '\0';
 		g_nroms++;
 	}
 	closedir(d);
@@ -1172,6 +1221,11 @@ void art_cancel(void)
 	g_nnames = 0;
 }
 
+void art_set_fbneo_dat(const char *path)
+{
+	snprintf(g_fbneo_dat, sizeof g_fbneo_dat, "%s", path ? path : "");
+}
+
 void art_begin(const systems_cfg *sys, const char *roms_dir, const char *only)
 {
 	int i;
@@ -1189,6 +1243,8 @@ void art_begin(const systems_cfg *sys, const char *roms_dir, const char *only)
 	g_phase = P_SYSTEM;
 	g_nsys = 0;
 	snprintf(g_romdir, sizeof g_romdir, "%s", roms_dir ? roms_dir : "");
+	if (!g_fbneo_dat[0] && access("res/fbneo-titles.tsv", R_OK) == 0)
+		snprintf(g_fbneo_dat, sizeof g_fbneo_dat, "res/fbneo-titles.tsv");
 	if (!sys) return;
 
 	/* A name cut short names a different game, so it is refused rather than
@@ -1226,6 +1282,7 @@ void art_begin(const systems_cfg *sys, const char *roms_dir, const char *only)
 
 		snprintf(g_sys[g_nsys].folder, CFG_STR, "%s", sys->systems[i].folder);
 		snprintf(g_sys[g_nsys].exts,   CFG_STR, "%s", sys->systems[i].exts);
+		g_sys[g_nsys].fbneo = !strcmp(sys->systems[i].core, "fbneo");
 		g_nsys++;
 	}
 	g_st.systems = g_nsys;
@@ -1244,6 +1301,25 @@ static bool art_paths(const char *dir, const char *stem,
 	if (snprintf(media, mn, "%s/.media", dir) >= (int)mn) return false;
 	if (snprintf(dest, dn, "%s/%s.png", media, stem) >= (int)dn) return false;
 	return true;
+}
+
+/* The name to ask libretro for ROM i by: its own, or on an fbneo shelf
+ * FBNeo's description of the set, with the characters libretro's thumbnail
+ * names cannot hold (the nine in the strchr below: a slash, a colon and the
+ * rest) turned to _ as libretro turns them. That is how "1943: The Battle of
+ * Midway (Euro)" is filed: "1943_ The Battle of Midway (Euro).png". */
+static const char *asked(int i)
+{
+	static char buf[NAME_MAX_];
+	const char *d = g_sys[g_si].fbneo && g_fbneo_dat[0]
+	              ? fbneo_desc(g_fbneo_dat, g_roms[i]) : NULL;
+	size_t k;
+
+	if (!d) return g_roms[i];
+	for (k = 0; d[k] && k < sizeof buf - 1; k++)
+		buf[k] = strchr("&*/:`<>?\\|", d[k]) ? '_' : d[k];
+	buf[k] = '\0';
+	return buf;
 }
 
 /* Ask for one image by the name libretro would file it under. Used by both
@@ -1441,7 +1517,7 @@ int art_step(void)
 
 		snprintf(g_st.now, sizeof g_st.now, "%s", g_roms[g_ri]);
 		mkdir(media, 0777);
-		if (!start_image(remote_nth(g_sys[g_si].folder, 0), g_roms[g_ri], dest)) {
+		if (!start_image(remote_nth(g_sys[g_si].folder, 0), asked(g_ri), dest)) {
 			g_retry[g_nretry++] = g_ri;
 			g_ri++;
 			return 1;
@@ -1530,7 +1606,7 @@ int art_step(void)
 			g_qi++;
 			return 1;
 		}
-		if (!match(g_roms[g_retry[g_qi]], hitbuf, sizeof hitbuf)) {
+		if (!match(asked(g_retry[g_qi]), hitbuf, sizeof hitbuf)) {
 			g_left[g_nleft++] = g_retry[g_qi];
 			snprintf(g_st.now, sizeof g_st.now, "no art for %s",
 			         g_roms[g_retry[g_qi]]);
@@ -1603,7 +1679,7 @@ int art_step(void)
 		    dat_name(crc, dname, sizeof dname) && match(dname, hitbuf, sizeof hitbuf)) {
 			fprintf(stderr, "art: %s is %s by checksum, cover %s\n",
 			        g_roms[ri], dname, hitbuf);
-		} else if (match_loose(g_roms[ri], hitbuf, sizeof hitbuf)) {
+		} else if (match_loose(asked(ri), hitbuf, sizeof hitbuf)) {
 			fprintf(stderr, "art: %s loosely, cover %s\n", g_roms[ri], hitbuf);
 		} else {
 			g_left[g_nleft++] = ri;

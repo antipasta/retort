@@ -41,12 +41,14 @@ one it was rebuilt from identically.
 | `mgba_libretro.so` | Game Boy, Color and Advance | MPL-2.0 | https://github.com/libretro/mgba at e31759b, with mGBA's own fix 543a197 from https://github.com/mgba-emu/mgba, built by `mk/build-mgba-bridge.sh` |
 | `snes9x2010_libretro.so` | SNES | **Non-commercial** | https://github.com/libretro/snes9x2010 at 7db129b |
 | `genesis_plus_gx_libretro.so` | Genesis, Master System, Game Gear | **Non-commercial** | https://github.com/libretro/Genesis-Plus-GX at b7e79b3 |
+| `fbneo_libretro.so` | Neo Geo (Arcade / AES) | **Non-commercial** / GPL-3.0 | https://github.com/libretro/FBNeo at a4012b1 + patches, fetched by `mk/fetch-vendor-extended.sh` |
+| `pcsx_rearmed_libretro.so` | PlayStation | GPL-2.0 | https://github.com/libretro/pcsx_rearmed at ff81ed1, fetched by `mk/fetch-vendor-extended.sh` |
 
-**The last two carry a non-commercial restriction.** They are not open source
+**SNES, Sega, and FBNeo carry non-commercial restrictions.** They are not open source
 under either the OSI or FSF definition and they forbid commercial
 redistribution outright: a card carrying them can't be sold, or shipped with a
 device that is. Hobby redistribution is what every firmware shipping them
-relies on. A card without SNES and the Sega systems carries no such
+relies on. A card without SNES, Sega, and Neo Geo carries no such
 restriction.
 
 ---

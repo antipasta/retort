@@ -179,7 +179,7 @@ bool plat_video_init(void)
 	}
 	panel_w = mode.w;
 	panel_h = mode.h;
-	win = SDL_CreateWindow("TortOS", 0, 0, panel_w, panel_h,
+	win = SDL_CreateWindow("ReTort", 0, 0, panel_w, panel_h,
 	                       SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_SHOWN);
 	if (!win) {
 		fprintf(stderr, "window: %s\n", SDL_GetError());

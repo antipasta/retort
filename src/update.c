@@ -133,8 +133,9 @@ bool update_parse(const char *json, size_t len, const char *device,
                   update_release *out, char *why, size_t whyn)
 {
 	update_release r;
-	char tag[32], want[96], name[160];
+	char tag[32], want[96], fallback[96], name[160];
 	bool image = false, sums = false;
+	bool has_pfx = false, has_fb = false;
 	long long sums_size;
 	long part[4];
 	int  parts;
@@ -155,11 +156,26 @@ bool update_parse(const char *json, size_t len, const char *device,
 		return false;
 	}
 	snprintf(r.version, sizeof r.version, "%s", tag + 1);
-	snprintf(want, sizeof want, "TortOS-v%s-%s.img.xz", r.version, device);
+	snprintf(want, sizeof want, "%sv%s-%s.img.xz", UPDATE_IMAGE_PREFIX, r.version, device);
+	snprintf(fallback, sizeof fallback, "TortOS-v%s-%s.img.xz", r.version, device);
 	if (!js_member(root, "assets", &assets)) {
 		say(why, whyn, "the release lists no files");
 		return false;
 	}
+	{
+		jsv it2 = { 0 }, a2;
+		char aname[160];
+		while (js_next(assets, &it2, &a2)) {
+			if (member_str(a2, "name", aname, sizeof aname)) {
+				if (!strncmp(aname, UPDATE_IMAGE_PREFIX "v", strlen(UPDATE_IMAGE_PREFIX) + 1))
+					has_pfx = true;
+				else if (!strncmp(aname, "TortOS-v", 8))
+					has_fb = true;
+			}
+		}
+	}
+	if (!has_pfx && has_fb)
+		snprintf(want, sizeof want, "%s", fallback);
 	while (js_next(assets, &it, &a)) {
 		if (!member_str(a, "name", name, sizeof name)) continue;
 		if (!image && !strcmp(name, want)) {
@@ -231,7 +247,7 @@ static bool cache_read(const char *path, bool aged, time_t now, const char *inst
                        update_state *state, update_release *r)
 {
 	update_release c;
-	char line[1024], have[24] = "", st[16] = "", want[96];
+	char line[1024], have[24] = "", st[16] = "", want[96], fallback[96];
 	long long checked = -1;
 	bool fits = true;
 	FILE *f = fopen(path, "r");
@@ -268,8 +284,10 @@ static bool cache_read(const char *path, bool aged, time_t now, const char *inst
 	if (strcmp(st, "waiting") || !update_is_newer(c.version, installed)) return false;
 	/* Kept by this file, but on a card anyone can write: held to the same
 	 * rules as a fresh reply before it can name a download. */
-	snprintf(want, sizeof want, "TortOS-v%s-", c.version);
-	if (strncmp(c.file, want, strlen(want)) || strstr(c.file, "/") ||
+	snprintf(want, sizeof want, "%sv%s-", UPDATE_IMAGE_PREFIX, c.version);
+	snprintf(fallback, sizeof fallback, "TortOS-v%s-", c.version);
+	if ((strncmp(c.file, want, strlen(want)) && strncmp(c.file, fallback, strlen(fallback))) ||
+	    strstr(c.file, "/") ||
 	    strlen(c.file) < 8 || strcmp(c.file + strlen(c.file) - 7, ".img.xz") ||
 	    !url_ok(c.url) || !url_ok(c.sums_url) || c.size <= 0 || c.size > IMAGE_MAX ||
 	    !is_sha256(c.sha256) || !is_sha256(c.sums_sha256))
@@ -365,6 +383,7 @@ bool update_request_write(const char *path, const char *device, const update_rel
 update_result update_result_parse(const char *line, char *detail, size_t n)
 {
 	static const struct { const char *start; update_result result; } said[] = {
+		{ "updated to Retort ", UPDATE_RESULT_DONE },
 		{ "updated to TortOS ", UPDATE_RESULT_DONE },
 		{ "not updated, nothing written: ", UPDATE_RESULT_UNTOUCHED },
 		{ "FAILED after writing: ", UPDATE_RESULT_FAILED },
@@ -410,7 +429,7 @@ bool update_offer(const char *file, const char *version, const char *size,
                   update_release *out, char *why, size_t whyn)
 {
 	update_release r;
-	char want[96];
+	char want[96], fallback[96];
 	long part[4];
 	int  parts;
 	char *end;
@@ -426,8 +445,9 @@ bool update_offer(const char *file, const char *version, const char *size,
 		say(why, whyn, "not newer than this device's");
 		return false;
 	}
-	snprintf(want, sizeof want, "TortOS-v%s-%s.img.xz", version, device);
-	if (!file || strcmp(file, want)) {
+	snprintf(want, sizeof want, "%sv%s-%s.img.xz", UPDATE_IMAGE_PREFIX, version, device);
+	snprintf(fallback, sizeof fallback, "TortOS-v%s-%s.img.xz", version, device);
+	if (!file || (strcmp(file, want) && strcmp(file, fallback))) {
 		say(why, whyn, "not this device's image");
 		return false;
 	}
@@ -442,7 +462,7 @@ bool update_offer(const char *file, const char *version, const char *size,
 	}
 	if (!sha256 || !is_sha256(sha256)) { say(why, whyn, "no SHA-256"); return false; }
 	snprintf(r.version, sizeof r.version, "%s", version);
-	snprintf(r.file, sizeof r.file, "%s", want);
+	snprintf(r.file, sizeof r.file, "%s", file);
 	memcpy(r.sha256, sha256, 65);
 	*out = r;
 	return true;

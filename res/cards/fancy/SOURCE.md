@@ -31,6 +31,10 @@ it. Favorites is a shelf rather than a console, so there is no hardware to
 photograph and it carries a heart instead. It was generated rather than shot,
 carries no attribution requirement, and no rights are claimed in it.
 
+NEOGEO.png joined on 2026-10-01: Evan Amos's Neo Geo AES, from Commons
+`File:Neo-Geo-AES-FL.png` (public domain, own work), processed the same way -
+trimmed to its alpha, longest side 369.
+
 ## MUSE.png
 
 Not a console, and not one of the photographs above. A green iPod nano (4th

@@ -447,11 +447,20 @@ static void update_have(char *out, size_t n)
 	if (!g_up_dir[0] || !(d = opendir(g_up_dir))) return;
 	while ((e = readdir(d))) {
 		size_t len = strlen(e->d_name), tl = strlen(tail);
+		size_t pfx = 0;
 
-		if (len > 8 + tl && !strncmp(e->d_name, "TortOS-v", 8) &&
-		    !strcmp(e->d_name + len - tl, tail) && len - 8 - tl < n) {
-			memcpy(out, e->d_name + 8, len - 8 - tl);
-			out[len - 8 - tl] = '\0';
+		if (!strncmp(e->d_name, UPDATE_IMAGE_PREFIX "v", strlen(UPDATE_IMAGE_PREFIX) + 1))
+			pfx = strlen(UPDATE_IMAGE_PREFIX) + 1;
+		else if (!strncmp(e->d_name, "ReTort-v", 8))
+			pfx = 8;
+		else if (!strncmp(e->d_name, "Retort-v", 8))
+			pfx = 8;
+		else if (!strncmp(e->d_name, "TortOS-v", 8))
+			pfx = 8;
+
+		if (pfx && len > pfx + tl && !strcmp(e->d_name + len - tl, tail) && len - pfx - tl < n) {
+			memcpy(out, e->d_name + pfx, len - pfx - tl);
+			out[len - pfx - tl] = '\0';
 			break;
 		}
 	}
@@ -573,7 +582,7 @@ static void route_update(httpd_req *r, bool done)
 			return;
 		}
 		hare_update_state("checking", NULL);
-		note("checking TortOS %s", offer.version);
+		note("checking ReTort %s", offer.version);
 		if (g_up_received) g_up_received(&offer);
 		httpd_reply(r, 200, "text/plain", "ok", 2, NULL);
 		return;
@@ -603,7 +612,7 @@ static void route_update(httpd_req *r, bool done)
 		httpd_want_body(r, HTTPD_BODY_FILE, part);
 		httpd_set_tag(r, TAG_UPDATE);
 		hare_update_state("receiving", NULL);
-		note("receiving TortOS %s", offer.version);
+		note("receiving ReTort %s", offer.version);
 		return;
 	}
 
@@ -620,7 +629,7 @@ static void route_update(httpd_req *r, bool done)
 		return;
 	}
 	hare_update_state("checking", NULL);
-	note("checking TortOS %s", offer.version);
+	note("checking ReTort %s", offer.version);
 	if (g_up_received) g_up_received(&offer);
 	httpd_reply(r, 200, "text/plain", "ok", 2, NULL);
 }

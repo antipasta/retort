@@ -224,11 +224,12 @@ check-artscrape: build-native/artscrape-check
 	@ART_SCORING=1 ./build-native/artscrape-check
 	@python3 tools/artscrape-check.py
 
-build-native/artscrape-check: tools/artscrape-check.c src/artscrape.c src/artscrape.h src/urlenc.c
+build-native/artscrape-check: tools/artscrape-check.c src/artscrape.c src/artscrape.h src/urlenc.c \
+                              src/fbneodat.c
 	@mkdir -p build-native
 	$(CC) -std=gnu11 -Wall -Wextra -D_GNU_SOURCE -O1 -g -Isrc \
 	      -DTORTOS_VERSION='"check"' \
-	      -o $@ tools/artscrape-check.c src/artscrape.c src/net.c src/urlenc.c
+	      -o $@ tools/artscrape-check.c src/artscrape.c src/net.c src/urlenc.c src/fbneodat.c
 
 # Replace fetches over a cover rather than deleting it first. The real scraper
 # against a stubbed network, so a hit and a miss are both pinned with no device
@@ -236,10 +237,11 @@ build-native/artscrape-check: tools/artscrape-check.c src/artscrape.c src/artscr
 check-artrun: build-native/artrun-check
 	@./build-native/artrun-check
 
-build-native/artrun-check: tools/artrun-check.c src/artscrape.c src/artscrape.h src/urlenc.c FORCE
+build-native/artrun-check: tools/artrun-check.c src/artscrape.c src/artscrape.h src/urlenc.c \
+                           src/fbneodat.c FORCE
 	@mkdir -p build-native
 	$(CC) -std=gnu11 -Wall -Wextra -D_GNU_SOURCE -O1 -g -Isrc -DSS_BUSY_WAIT=0 -DART_QUIET \
-	      -o $@ tools/artrun-check.c src/artscrape.c src/urlenc.c
+	      -o $@ tools/artrun-check.c src/artscrape.c src/urlenc.c src/fbneodat.c
 
 # The two hashers - one C for the device, one Python for the host tools - over
 # every ROM in the library. A wrong rule does not crash; it produces a hash RA
@@ -285,6 +287,13 @@ native:
 # runtime libraries: the cores need only what the device's firmware already has.
 vendor:
 	./mk/fetch-vendor.sh
+
+# The extended libretro cores ReTort supports (Neo Geo FBNeo and PlayStation PCSX-ReARMed)
+vendor-extended:
+	./mk/fetch-vendor-extended.sh
+
+# Fetch both stock and extended cores
+vendor-all: vendor vendor-extended
 
 # Assets in res/ are committed ready to ship; nothing needs generating to build.
 #
@@ -389,6 +398,18 @@ build-native/museart-check: tools/museart-check.c src/museart.c src/museart.h \
 # failure is silent otherwise, and it ships.
 checkmark:
 	python3 tools/checkmark.py
+
+# The in-game Shader list: its parser, and the shipped res/shaders/shaders.cfg
+# with every file it names. Links src/shaderlist.c and NOT SDL.
+.PHONY: check-shaderlist
+CHECKS += check-shaderlist
+check-shaderlist: build-native/shaderlist-check
+	@./build-native/shaderlist-check
+
+build-native/shaderlist-check: tools/shaderlist-check.c src/shaderlist.c src/shaderlist.h FORCE
+	@mkdir -p build-native
+	$(CC) -std=gnu11 -Wall -Wextra -D_GNU_SOURCE -O1 -g \
+	      -o $@ tools/shaderlist-check.c src/shaderlist.c
 
 clean:
 	rm -rf build build-native out
